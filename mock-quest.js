@@ -1,5 +1,5 @@
 import { MockECG } from './mock-ecg.js';
-import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, runLengths } from './simulation.js';
+import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, runLengths } from './simulation.js?v=2';
 import { joinQuest } from './vendor/atmungsraum/quest-gateway.js';
 import { pairPhone } from './vendor/atmungsraum/quest-pairing.js';
 import { createMockRecordings } from './mock-recordings.js';
@@ -168,6 +168,7 @@ export function createMockQuest(onBreathingCue = () => {}) {
       const { scenario, participant_id } = command;
       if (action !== 'participant-arm' || phase !== 'IDLE' || command.g !== generation
         || typeof participant_id !== 'string' || !participant_id || !Object.hasOwn(runLengths, scenario)
+        || (scenario === 'haupt-15' && command.condition !== 'condition-a')
         || !['condition-a', 'condition-b'].includes(command.condition) || fixture === 'signal-loss') return false;
       phase = 'ARMING';
       // The supplied ID is intentionally not retained in any simulated recording.

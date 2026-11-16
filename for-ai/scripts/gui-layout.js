@@ -47,6 +47,15 @@ async () => {
         && (element.dataset.textFit !== 'fit' || !['pretext', 'dom'].includes(element.dataset.textMeasurement))) {
       problems.push(`${describe(element)} has no passing text measurement`);
     }
+    if (element.matches('.session-tile')) {
+      const box = element.getBoundingClientRect();
+      const img = element.querySelector('img');
+      const label = element.querySelector('[data-measure]');
+      if (Math.abs(box.width - box.height) > 1 || box.width < 44) problems.push('Scenario tile is not a usable square');
+      if (!img.naturalWidth || !inside(img.getBoundingClientRect(), box) || !inside(label.getBoundingClientRect(), box)) {
+        problems.push('Scenario tile does not fit its illustration and label');
+      }
+    }
     if (activePanel.contains(element) && element.matches('button, input, select, textarea, summary, a[href]')) {
       const box = element.getBoundingClientRect();
       if (!inside(box, panelBox)) problems.push(`${describe(element)} escapes its panel`);

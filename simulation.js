@@ -30,12 +30,9 @@ export function breathVolumeAt(timeMs) {
 }
 
 export const runLengths = {
-  'probe-anleitung': 68,
   'probe-5': 300,
-  'probe-10': 600,
-  'probe-15': 900,
+  'free-exploration': Infinity,
   'haupt-15': 900,
-  'box-20': 1200,
 };
 
 export function elapsedRun(run, now) {

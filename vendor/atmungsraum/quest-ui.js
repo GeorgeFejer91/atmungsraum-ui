@@ -1,6 +1,6 @@
 import { sameQuest, operationId, controllerAccessState } from './quest-gateway.js?v=12';
-import { canRecenter, polarSetup, polarReadiness, QuestRehearsal, rehearsalActions, rehearsalPolarAllowed, rehearsalScenarios } from './quest-rehearsal.js?v=27';
-import { ecgTrace, questRecording, questRecordings, questPrefixBatches } from './quest-data.js?v=26';
+import { canRecenter, polarSetup, polarReadiness, QuestRehearsal, rehearsalActions, rehearsalPolarAllowed, rehearsalScenarios } from './quest-rehearsal.js?v=28';
+import { ecgTrace, questRecording, questRecordings, questPrefixBatches } from './quest-data.js?v=27';
 import { openQuestRecordingStore } from './quest-recording-store.js?v=4';
 import { mountQuestDrive } from './quest-drive-ui.js?v=6';
 import { BreathingSetup } from './breathing-setup.js?v=8';
@@ -25,9 +25,9 @@ function activeForSync({ status, busy, pending, unknown }) {
     && ['RUNNING', 'PAUSED'].includes(status.p);
 }
 const labels = {
-  IDLE: 'Quest bereit.', ARMED: 'Probelauf vorbereitet.', RUNNING: 'Probelauf läuft.',
-  PAUSED: 'Probelauf pausiert.', FINALIZING: 'Quest beendet den Probelauf.',
-  SAVING: 'Quest speichert den Probelauf.', ERROR: 'Die Quest meldet einen Fehler.',
+  IDLE: 'Quest bereit.', ARMED: 'Sitzung vorbereitet.', RUNNING: 'Sitzung läuft.',
+  PAUSED: 'Sitzung pausiert.', FINALIZING: 'Quest beendet die Sitzung.',
+  SAVING: 'Quest speichert die Sitzung.', ERROR: 'Die Quest meldet einen Fehler.',
 };
 
 export function mountQuestRehearsal(participantIdentity, savedPair, services) {
@@ -70,10 +70,9 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   const finish = byId('quest-finish');
   const acknowledge = byId('quest-acknowledge');
   const disconnect = byId('quest-disconnect');
-  const condition = byId('quest-condition');
-  const conditionName = byId('quest-condition-name');
-  const scenario = byId('quest-scenario');
-  const scenarioOptions = Array.from(scenario.options);
+  const sessionChoices = byId('session-choices');
+  const scenarioChoices = byId('quest-scenario');
+  const scenarioOptions = Array.from(scenarioChoices.querySelectorAll('input'));
   const participant = byId('quest-participant');
   const participantLabel = byId('quest-participant-label');
   const participantDialog = byId('participant-dialog');
@@ -118,8 +117,17 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   let breathTimer;
   const rehearsal = new QuestRehearsal({ storage, onChange: paint });
 
+  function selectedScenario() {
+    return scenarioChoices.querySelector('input:checked:not([disabled])');
+  }
+
   function paint({ status, busy, pending, unknown, message } = rehearsal.state) {
-    const actions = rehearsalActions(status, condition.value);
+    const focusedChoice = sessionChoices.contains(document.activeElement) ? document.activeElement : null;
+    const available = rehearsal.gateway?.scenarioArm ? rehearsalScenarios(status) : [];
+    for (const option of scenarioOptions) option.closest('label').hidden = option.disabled = !available.includes(option.value);
+    const firstScenario = scenarioOptions.find(option => !option.disabled);
+    if (firstScenario && !selectedScenario()) firstScenario.checked = true;
+    const actions = rehearsalActions(status);
     const active = Boolean(status?.rec);
     const requiresParticipant = status?.participant_arm === 1;
     const armedWithParticipant = Boolean(rehearsal.gateway?.participantArm);
@@ -151,12 +159,12 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     const hint = !status ? 'Quest verbinden.'
       : waitingForControl ? (access.active_phone ? 'Ein anderes Smartphone steuert die Quest.' : 'Übernimm die Quest-Steuerung auf diesem Smartphone.')
       : status.h === 'panel' ? 'Schließe das Bedienfeld in der Quest und kehre zur VR-Szene zurück.'
-      : !rehearsalPolarAllowed(status) ? 'Diese Sitzung ist nicht für den Probelauf freigegeben.'
-      : requiresParticipant && !armedWithParticipant ? 'Dieses Smartphone ist für den Probelauf noch nicht freigegeben.'
+      : !rehearsalPolarAllowed(status) ? 'Die Quest hat die Sitzung nicht freigegeben.'
+      : requiresParticipant && !armedWithParticipant ? 'Dieses Smartphone ist für die Sitzung noch nicht freigegeben.'
       : status.pi?.r === true && status.pi.f !== true && ['ARMED', 'PAUSED'].includes(status.p)
         ? 'Warte auf aktuelle Polar-H10-Daten von der Quest.'
-      : status.p === 'IDLE' && !actions.play ? 'Warte auf die VR-Szene und den Probelauf.'
-      : labels[status.p] ?? 'Quest bereitet den Probelauf vor.';
+      : status.p === 'IDLE' && (!actions.play || !firstScenario) ? 'Warte auf ein verfügbares VR-Szenario.'
+      : labels[status.p] ?? 'Quest bereitet die Sitzung vor.';
     text(statusText, unknown ? 'Bestätigung ausstehend.'
       : pairingChoice ? 'Kopplung bestätigen.'
         : connecting ? 'Quest wird verbunden …' : commandWaiting ? 'Warte auf Bestätigung der Quest …'
@@ -246,24 +254,12 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     polarConnect.hidden = Boolean(ready || recoveringStreams || automaticConnection);
     polarConnect.disabled = recoveringStreams || waiting || unknown || !setup?.p || !setup.b || !setup.c && setup.l === 'disabled' || setup.sc || ready;
     if ((polar.hidden || polarConnect.hidden) && hadPolarFocus) focusInViewport(statusText);
-    play.hidden = !status || idle && !selectionAllowed;
-    const available = rehearsal.gateway?.scenarioArm ? rehearsalScenarios(status) : [];
-    const showScenario = selectionAllowed && available.length > 0;
-    if (!showScenario && document.activeElement === scenario) focusInViewport(statusText);
-    scenario.parentElement.hidden = !showScenario;
-    scenario.disabled = !showScenario || waiting || unknown;
-    if (showScenario) {
-      for (const option of scenarioOptions) option.hidden = option.disabled = !available.includes(option.value);
-      if (!available.includes(scenario.value)) scenario.value = scenarioOptions.find(option => !option.disabled).value;
-    }
-    const showCondition = selectionAllowed && status.ecg_preview === 1;
-    if (!showCondition && document.activeElement === condition) focusInViewport(statusText);
-    condition.parentElement.hidden = !showCondition;
-    condition.disabled = waiting || unknown;
-    text(conditionName, showScenario ? 'VR-Bedingung' : 'Szenario');
-    text(condition.options[0], showScenario ? 'Bedingung A' : 'Szenario A');
-    text(condition.options[1], showScenario ? 'Bedingung B' : 'Szenario B');
-    play.disabled = waiting || unknown || !actions.play || actions.play === 'arm' && !selectionAllowed;
+    const showScenario = selectionAllowed && Boolean(firstScenario);
+    play.hidden = !status || idle && !showScenario;
+    sessionChoices.hidden = !showScenario;
+    scenarioChoices.disabled = waiting || unknown;
+    if (focusedChoice && (focusedChoice.closest('[hidden]') || focusedChoice.matches(':disabled'))) focusInViewport(statusText);
+    play.disabled = waiting || unknown || !actions.play || actions.play === 'arm' && !showScenario;
     text(play.firstElementChild, status?.p === 'RUNNING' ? 'Pause' : status?.p === 'PAUSED' ? 'Fortsetzen' : 'Starten');
     finish.hidden = !active;
     if (finish.hidden && hadFinishFocus) focusInViewport(statusText);
@@ -301,8 +297,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
       if (showPreview) focusInViewport(previewTitle);
       else {
         if (hadPreviewFocus || document.activeElement === document.body) {
-          if (showCondition) focusInViewport(condition);
-          else if (showScenario) focusInViewport(scenario);
+          if (showScenario) focusInViewport(selectedScenario());
           else focusInViewport(statusText);
         }
       }
@@ -811,8 +806,8 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     nextSync = 0;
     const attempt = new AbortController();
     userAction = attempt;
-    const selected = scenario.parentElement.hidden ? '' : scenario.value;
-    try { await rehearsal.run(action, attempt.signal, condition.value, participantId, selected); }
+    const scenario = sessionChoices.hidden ? '' : selectedScenario().value;
+    try { await rehearsal.run(action, attempt.signal, 'condition-a', participantId, scenario); }
     finally { if (userAction === attempt) userAction = null; }
   }
 
@@ -878,7 +873,6 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     previewAccepted = breathing.view.acceptance;
     paint();
   });
-  condition.addEventListener('change', () => paint());
   play.addEventListener('click', () => {
     if (!play.hidden && !play.disabled) void act('play');
   });

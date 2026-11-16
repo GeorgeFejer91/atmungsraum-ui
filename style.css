@@ -37,12 +37,65 @@ main { display: grid; grid-template-rows: minmax(0, 1fr); min-width: 0; min-heig
 .screen-body { display: grid; align-content: space-between; gap: var(--gap); min-width: 0; min-height: 0; padding-block: 3px; }
 .quest-body, .preview-body, .data-body { text-align: center; }
 .quest-body > button { width: min(100%, 320px); justify-self: center; }
-.quest-body .fields:not(:has(> :not([hidden]))) { display: none; }
 .pairing, .fields, .dialog-group, .recovery-panel { display: grid; gap: var(--gap); min-width: 0; }
 .pairing { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .pairing > p { grid-column: 1 / -1; }
 #quest-pairing-code { font: 700 1.6rem/1.2 monospace; letter-spacing: .12em; }
 #quest-clock { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.quest-body:has(#session-choices:not([hidden])) {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, calc(var(--usable-height) / 70 + 1vw), 18px);
+}
+.quest-body > button { align-self: center; }
+#session-choices {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  container-type: size;
+  place-content: center;
+}
+#session-choices fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.session-tiles {
+  --tile-size: min(11rem, calc((100cqw - 2 * var(--gap)) / 3), 100cqh);
+  display: grid;
+  grid-template-columns: repeat(3, var(--tile-size));
+  grid-auto-rows: var(--tile-size);
+  gap: var(--gap);
+}
+@container (max-width: 27em) and (min-height: 220px) {
+  .session-tiles {
+    --tile-size: min(calc((100cqw - var(--gap)) / 2), calc((100cqh - var(--gap)) / 2));
+    grid-template-columns: repeat(2, var(--tile-size));
+  }
+  .session-tiles:not(:has(> [hidden])) > :last-child {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: var(--tile-size);
+  }
+}
+.session-tile {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  place-items: center;
+  gap: 3px;
+  padding: clamp(3px, min(1.5cqw, 1.5cqh), 9px);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: clamp(.95rem, min(3.5cqw, 4cqh), 1.1rem);
+  font-weight: 700;
+  line-height: 1.1;
+  cursor: pointer;
+}
+.session-tile input { position: absolute; inset: 0; height: 100%; margin: 0; opacity: 0; cursor: inherit; }
+.session-tile img { width: min(88%, 124px); height: 100%; min-height: 0; object-fit: contain; }
+.session-tile > span { display: grid; place-items: center; width: 100%; min-height: 2lh; }
+.session-tile > :not(input) { pointer-events: none; }
+.session-tile:has(:checked) { background: #0e2a3c; border-color: #74c5f2; box-shadow: inset 0 0 0 1px #74c5f2; }
+.session-tile:has(:focus-visible) { outline: 2px solid var(--focus); outline-offset: 1px; }
+.session-tile:has(:disabled) { color: #979797; cursor: default; }
 .fields, .actions, .menu-dialog > .screen-body {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -192,7 +245,7 @@ input, select, output {
 #preview-controller svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 #data-files { margin: 0; padding: 0; list-style: none; }
 @media (max-width: 500px) {
-  #quest-drive-form, #scenario-fields, #simulation-dialog .fields { grid-template-columns: minmax(0, 1fr); }
+  #quest-drive-form, #simulation-dialog .fields { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-height: 460px) and (min-width: 600px) {
   .calibration-actions:has(#preview-controller:not([hidden])) { grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, 1.5fr); }

@@ -7,9 +7,11 @@ both Polar H10 streams ready. Enter and confirm a test participant ID to open
 breathing setup. **Start Calibration** runs the box breathing cue and shows the
 calibration circles. Verify the particle response with the participant, then
 accept or restart. After two Polar attempts the operator can also switch to a VR
-controller and check its response. Accepting opens condition and scenario
-selection. Start, pause, resume, and end the run using the app's controls.
-Saved runs offer a synthetic CSV download.
+controller and check its response. Accepting opens a single page with three
+illustrated scenario tiles: **Probe-Runde** (5 minutes), **Freie Erkundung**
+(end manually), and **Haupt-Runde** (15 minutes, one fixed condition). Start,
+pause, resume, and end the run using the app's controls. Saved runs offer a
+synthetic CSV download.
 
 Open **Simulation** to try Quest pairing, disconnect the Polar, drop its ECG
 signal, exercise a failed calibration, audio recovery or an older APK state,

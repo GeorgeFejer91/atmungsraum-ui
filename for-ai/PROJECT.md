@@ -22,9 +22,10 @@ Simulation menu.
    **Accept Calibration** advances once the Quest reports a ready input.
    **Restart Calibration** retries, and the controller option appears after
    two Quest-reported Polar attempts for the current participant setup.
-4. **Round selection.** Choose **Haupt-Runde** or **Probe-Runde** on a dedicated
-   page.
-5. **VR scenarios.** Show the scenario pages for the chosen round.
+4. **VR scenario and session.** Show three illustrated square tiles on one
+   page: **Probe-Runde** (5 minutes), **Freie Erkundung** (end manually), and
+   **Haupt-Runde** (15 minutes, one fixed condition). Select a tile and press
+   **Starten**. The session uses the existing pause, resume, and end controls.
 
 The current build starts in the simulated connected state and opens the
 participant form as a dialog. Its fixture exports use a fixed demo identity.
@@ -34,11 +35,8 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
 - Decide whether the connection page also waits for live Polar H10 data before
   enabling **Weiter**. Define how operators retry pairing or calibration and
   where they resume if a connection drops later.
-- Map VR conditions A/B, instructions, practice durations, and Box-Atmung to
-  the two round branches.
-- Define where Start, Pause, Resume, and End belong in the scenario pages. Decide
-  what operators see after saving a run, how recordings are named across repeat
-  runs, and how to start another run or switch participants.
+- Decide what operators see after saving a run, how production recordings are
+  named across repeat runs, and how to start another run or switch participants.
 
 ## Active checklist
 
@@ -61,6 +59,10 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   fallback. Chrome verified the review gate, interrupted audio, two failed
   attempts, controller selection, and reset for a new participant. The strict
   audit passed 29 states across seven viewport cases using simulated signals.
+- [x] Consolidate VR scenario selection into three illustrated square tiles.
+  Chrome verified keyboard selection, the fixed main condition, an untimed
+  exploration run, and the synthetic downloads. The strict viewport audit
+  checks that the tile labels and SVGs fit.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 

@@ -6,7 +6,7 @@ const desiredPhase = { arm: 'ARMED', start: 'RUNNING', pause: 'PAUSED', resume: 
 const setupOperations = new Set(['scan', 'select', 'connect', 'start-ecg', 'start-acc']);
 const setupReference = /^[a-f0-9]{32}$/;
 const candidateId = /^[a-f0-9]{12}$/;
-const scenarios = new Set(['probe-anleitung', 'probe-5', 'probe-10', 'probe-15', 'haupt-15', 'box-20']);
+const scenarios = new Set(['probe-anleitung', 'probe-5', 'probe-10', 'probe-15', 'haupt-15', 'box-20', 'free-exploration']);
 const audioRecovering = status => status?.setup?.stage === 'recovering';
 const automationStates = new Set(['scanning', 'backoff', 'connecting', 'streams', 'ready', 'blocked', 'stopped', 'selection-required']);
 const validAutomation = value => value?.v === 1 && automationStates.has(value.state)
