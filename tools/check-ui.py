@@ -203,7 +203,7 @@ def full_flow(browser, url, image):
     expect(actions).to_have_text(["Start Calibration"], timeout=3000)
     expect(page.locator(".preview-radius")).to_be_hidden()
     collect_calibration(page)
-    expect(page.get_by_text("Please ask the participant if the particles are responding to their breathing.")).to_be_visible()
+    expect(page.get_by_text("Bitte fragen Sie die teilnehmende Person, ob die Partikel auf ihre Atmung reagieren.")).to_be_visible()
     expect(actions).to_have_text(["Accept Calibration", "Restart Calibration"])
     expect(page.locator("#preview-continue")).to_be_focused()
     collect_calibration(page, "#preview-restart")

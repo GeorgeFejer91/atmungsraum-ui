@@ -1,7 +1,7 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
 import { createMockQuest } from './mock-quest.js?v=3';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
-import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=3';
+import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=4';
 import { showBluetooth } from './connectivity.js';
 
 const byId = id => document.getElementById(id);

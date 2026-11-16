@@ -172,6 +172,17 @@ input, select, output {
 #preview-circle, #preview-actual-circle { grid-area: 1 / 1; width: 100%; aspect-ratio: 1; border: 2px solid #69b4e0; border-radius: 50%; background: #061923; transform: scale(.46); }
 #preview-actual-circle { width: calc(100% - 4px); border: 3px dashed #efc570; background: transparent; }
 #preview-actual-circle[data-stale] { opacity: .45; }
+.preview-body:has(> #preview-status[lang="de"]) { container: breath-review / size; }
+#preview-status[lang="de"] {
+  font-size: clamp(1.5rem, min(6.5vw, 7dvh), 2.25rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+@container breath-review (max-height: 15em) {
+  .breath-visual { grid-auto-flow: column; place-content: center; align-items: center; }
+  .preview-radius { inline-size: 48px; }
+  #preview-status[lang="de"] { line-height: 1.05; padding-block: 1px; }
+}
 #preview-progress-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 3px var(--gap); }
 .preview-progress-track { position: relative; grid-column: 1 / -1; grid-row: 2; height: 10px; border: 1px solid var(--border); border-radius: 3px; overflow: hidden; }
 #preview-progress { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; }

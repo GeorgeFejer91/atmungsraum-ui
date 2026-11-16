@@ -337,7 +337,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
       : view.recovering ? 'The Quest is restarting the breathing audio.'
       : pending ? 'Waiting for the Quest to confirm.'
       : ready ? controller ? 'Ask the participant to check that the particles respond to the controller.'
-        : 'Please ask the participant if the particles are responding to their breathing.'
+        : 'Bitte fragen Sie die teilnehmende Person, ob die Partikel auf ihre Atmung reagieren.'
       : !native ? 'Waiting for the Quest connection.'
       : attempts > 0 && view.failure ? 'Calibration failed. Restart to try again.'
       : view.message ? 'The Quest could not start the requested input. Try again.'
@@ -347,6 +347,8 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
       : collecting && native.calibration === 'waiting' ? 'Calibration begins with the next full breathing cycle.'
       : collecting ? 'Follow the cue for two breathing cycles.'
       : !view.actions.calibrate ? 'Waiting for the Quest and Polar H10 to be ready.' : '';
+    const language = ready && !controller ? 'de' : 'en';
+    if (previewStatus.lang !== language) previewStatus.lang = language;
     text(previewStatus, status);
     breathVisual.hidden = attempts <= 0 || !native?.playing || view.recovering;
     previewProgressGroup.hidden = !collecting || view.recovering;
