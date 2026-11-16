@@ -14,7 +14,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/app-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./style.css?v=3">
+  <link rel="stylesheet" href="./style.css?v=4">
   <script type="module" src="./pwa-install.js?v=2"></script>
   <script type="module" src="./app.js?v=5"></script>
 </head>
@@ -179,27 +179,36 @@
   <dialog id="participant-dialog" aria-labelledby="participant-dialog-title">
     <header><h2 id="participant-dialog-title" data-measure>Teilnehmer-ID</h2></header>
     <div class="screen-body">
-      <form id="patient-form" autocomplete="off"><fieldset class="patient-fields" id="patient-fields" aria-label="Teilnehmer-ID" disabled>
-              <label class="patient-field" for="patient-surname">
-                <span data-measure>Nachname (3 Buchstaben)</span>
-                <input id="patient-surname" name="surnamePrefix" type="text" minlength="3" maxlength="3" pattern="\p{L}{3}" required spellcheck="false" autocapitalize="off">
-              </label>
-              <label class="patient-field" for="patient-age">
-                <span data-measure>Alter</span>
-                <input id="patient-age" name="age" type="number" min="0" max="9007199254740991" step="1" inputmode="numeric" required>
-              </label>
-              <label class="patient-field" for="patient-gender"><span data-measure>Geschlecht</span>
-                <select id="patient-gender" name="gender" required>
-                  <option value="">Auswählen</option><option value="male">Männlich</option><option value="female">Weiblich</option>
-                  <option value="other">Divers</option><option value="prefer-not-to-say">Keine Angabe</option>
-                </select>
-              </label>
-              <label class="patient-field patient-identifier" for="patient-id">
-                <span data-measure>Teilnehmer-ID</span>
-                <output id="patient-id" for="patient-surname patient-age" aria-live="off" data-measure>—</output>
-              </label>
-            </fieldset>
-            </form>
+      <form id="patient-form" autocomplete="off">
+        <fieldset class="patient-fields" id="patient-fields" aria-label="Teilnehmer-ID" disabled>
+          <div class="patient-row">
+            <label class="patient-field" for="patient-surname">
+              <span data-measure>Nachname (3 Buchstaben)</span>
+              <input id="patient-surname" name="surnamePrefix" type="text" minlength="3" maxlength="3" pattern="\p{L}{3}" required spellcheck="false" autocapitalize="off">
+            </label>
+            <label class="patient-field" for="patient-age">
+              <span data-measure>Alter</span>
+              <input id="patient-age" name="age" type="number" min="0" max="9007199254740991" step="1" inputmode="numeric" required>
+            </label>
+          </div>
+          <div class="patient-row">
+            <label class="patient-field" for="patient-gender">
+              <span data-measure>Geschlecht</span>
+              <select id="patient-gender" name="gender" required>
+                <option value="">Auswählen</option>
+                <option value="male">Männlich</option>
+                <option value="female">Weiblich</option>
+                <option value="other">Divers</option>
+                <option value="prefer-not-to-say">Keine Angabe</option>
+              </select>
+            </label>
+            <label class="patient-field" for="patient-id">
+              <span data-measure>Teilnehmer-ID</span>
+              <output id="patient-id" for="patient-surname patient-age patient-gender" aria-live="off" data-measure>—</output>
+            </label>
+          </div>
+        </fieldset>
+      </form>
     </div>
     <footer class="actions"><button id="patient-next" type="submit" form="patient-form" disabled><span data-measure>Übernehmen</span></button><button type="button" data-close><span data-measure>Schließen</span></button></footer>
   </dialog>

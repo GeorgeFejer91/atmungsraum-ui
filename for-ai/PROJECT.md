@@ -74,7 +74,11 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
    and focus order. Distribute surplus space between groups and cells along
    both axes with shrinkable Grid or Flex tracks. Derive spacing and preferred
    type from width and height while preserving readable type, visible focus,
-   and usable touch targets.
+   and usable touch targets. Let nested forms and groups use the space allocated
+   to them. Use balanced outer insets, shared label and control tracks within
+   each row, and equal cell sizes for controls with the same role. A wrapped
+   label expands the shared label track. Use extra space to separate the
+   ordered groups and balance the form within its body.
 4. Use the locked `@chenglou/pretext` dependency through the existing
    measurement owner. Measure every bounded text region against its actual
    inner width and height with matching loaded fonts, spacing, and locale.

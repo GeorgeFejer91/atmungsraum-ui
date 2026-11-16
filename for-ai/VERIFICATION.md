@@ -43,6 +43,9 @@ with these requirements.
   focus, and usable touch targets. Verify locked Pretext measurement with the
   actual typography after fonts load. Compare with the painted DOM, including
   text-spacing overrides and any layout used when the preferred text cannot fit.
+- Check shared control edges and equal cell sizes within peer rows, including
+  when a label wraps. Verify that nested form groups fill the available body
+  and that their spacing grows when the body gains usable height.
 - Record the candidate SHA, commands, browser or device, viewport and UI
   states, and results. Record where emulation or a physical device supplied
   the evidence. Any overflow, hidden field, clipped text, overlap,

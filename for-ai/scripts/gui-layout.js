@@ -77,7 +77,30 @@ async () => {
   if (bodyStyle.minWidth !== '0px' || bodyStyle.minHeight !== '0px') {
     problems.push(`${describe(activePanel)} stretch body needs shrinkable width and height`);
   }
-  const groups = [...body.children].filter(visible);
+  const fields = body.querySelector('#patient-fields');
+  const groups = fields ? [...fields.querySelectorAll('.patient-field')] : [...body.children].filter(visible);
+  if (fields) {
+    const bounds = fields.getBoundingClientRect();
+    const innerHeight = body.clientHeight - parseFloat(bodyStyle.paddingTop) - parseFloat(bodyStyle.paddingBottom);
+    if (bounds.height < innerHeight - 1 || bounds.width < body.clientWidth - 1) {
+      problems.push('Participant fields do not use the available form area');
+    }
+    const controlsByRow = new Map();
+    for (const field of groups) {
+      const { top } = field.getBoundingClientRect();
+      const control = field.querySelector('input, select, output').getBoundingClientRect();
+      const peer = controlsByRow.get(top);
+      if (peer && ['top', 'bottom', 'width'].some(edge => Math.abs(peer[edge] - control[edge]) > 1)) {
+        problems.push(field.htmlFor + ' does not align with the other control in its row');
+      }
+      controlsByRow.set(top, control);
+    }
+  }
+  const actions = Array.from(footer.children).filter(visible).map(element => element.getBoundingClientRect());
+  if (actions.length === 2 && Math.abs(actions[0].left - actions[1].left) > 1
+    && ['top', 'bottom', 'width'].some(edge => Math.abs(actions[0][edge] - actions[1][edge]) > 1)) {
+    problems.push('Footer actions do not share the same row dimensions');
+  }
   const rows = new Map();
   for (const group of groups) {
     const box = group.getBoundingClientRect();
@@ -85,6 +108,6 @@ async () => {
   }
   const boxes = [...rows].sort(([left], [right]) => left - right);
   const gap = boxes.slice(1).reduce((sum, [top], index) => sum + Math.max(0, top - boxes[index][1]), 0);
-  const contents = groups.map(element => element.id || element.textContent.trim() || describe(element));
+  const contents = groups.map(element => element.id || element.htmlFor || element.textContent.trim() || describe(element));
   return { problems, bodyWidth: bodyBox.width, bodyHeight: bodyBox.height, gap, groups: rows.size, contents };
 }
