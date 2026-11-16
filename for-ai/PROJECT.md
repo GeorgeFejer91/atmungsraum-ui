@@ -9,9 +9,11 @@ Simulation menu.
 
 ## Target PWA flow
 
-1. **Headset connection.** Start on a dedicated page that establishes the PWA's
-   Bluetooth and Wi-Fi connections to the Quest. Once both connections are
-   confirmed, display the participant's live ECG on the page and enable **Weiter**.
+1. **Connection and setup.** Start on the page that establishes the PWA's
+   Bluetooth and Wi-Fi connections to the Quest. Put all setup buttons on this
+   page, including device setup, app installation, and Google Drive. Once both
+   Quest connections are confirmed, display the participant's live ECG on this
+   page and enable **Weiter**.
 2. **Teilnehmer-ID.** Enter or select and confirm the participant ID on its own
    page. The confirmed ID determines how the run's recordings are named.
 3. **ACC breathing calibration.** Calibrate accelerometer-based breathing input on
