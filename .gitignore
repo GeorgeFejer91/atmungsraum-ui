@@ -12,3 +12,8 @@ Thumbs.db
 *.swp
 *.tmp
 *.log
+
+# Local dependencies and browser-test caches
+node_modules/
+__pycache__/
+.venv/

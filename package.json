@@ -1,0 +1,12 @@
+{
+  "name": "atmungsraum-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "vendor": "node tools/vendor-pretext.mjs"
+  },
+  "dependencies": {
+    "@chenglou/pretext": "0.0.9"
+  }
+}

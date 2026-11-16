@@ -1,0 +1,44 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+import { LiveEcgDisplay } from '../live-ecg-display.js';
+import { breathVolumeAt, demoCsv, ecgPacket, elapsedRun } from '../simulation.js';
+
+const manifest = JSON.parse(readFileSync(new URL('../assets/ecg/mock-ecg.json', import.meta.url)));
+const bytes = readFileSync(new URL('../assets/ecg/mock-ecg.f32', import.meta.url));
+const samples = Float32Array.from({ length: manifest.samples }, (_, index) => bytes.readFloatLE(index * 4));
+const rate = manifest.settings.sampling_rate;
+
+test('the NeuroKit ECG matches its pinned manifest and replays deterministically', () => {
+  assert.equal(createHash('sha256').update(bytes).digest('hex'), manifest.sha256);
+  assert.equal(samples.length, rate * manifest.settings.duration);
+  assert.ok(samples.every(Number.isFinite));
+  const first = ecgPacket(samples, rate, 0);
+  assert.equal(first.points.length, 260);
+  assert.ok(first.points.every(point => Number.isSafeInteger(point.value)));
+  assert.ok(new Set(first.points.map(point => point.value)).size > 100);
+  assert.deepEqual(first.points.map(point => point.value),
+    ecgPacket(samples, rate, manifest.settings.duration * 1000).points.map(point => point.value));
+});
+
+test('the fixture produces a visible packet gap in the production ECG renderer', () => {
+  const display = new LiveEcgDisplay();
+  const now = 2850;
+  const packet = ecgPacket(samples, rate, now, true);
+  assert.ok(packet.points.length < 260);
+  assert.equal(display.push(packet, now), true);
+  assert.ok(display.frame(now).path.split('M').length > 2);
+  assert.equal(display.frame(now + packet.ttl), null);
+});
+
+test('box cue, accelerated run clock and mock download stay deterministic', () => {
+  assert.deepEqual([0, 2000, 4000, 8000, 10000, 12000, 16000].map(breathVolumeAt), [0, .5, 1, 1, .5, 0, 0]);
+  const run = { duration: 900, elapsed: 24, speed: 60, started: 1000 };
+  assert.equal(elapsedRun(run, 2000), 84);
+  assert.equal(elapsedRun(run, 100000), 900);
+  assert.equal(elapsedRun({ ...run, started: null }, 100000), 24);
+  const csv = demoCsv(samples, rate);
+  assert.match(csv, /^source,sample_index,time_s,ecg_mock_uv\nmock-neurokit2,0,0\.000000,-?\d+/);
+  assert.equal(csv.trim().split('\n').length, rate * 5 + 1);
+});

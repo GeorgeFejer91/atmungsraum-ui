@@ -2,56 +2,32 @@
 
 ## Purpose
 
-Smartphone UI playground for Atmungsraum with simulated sensor data and Quest states.
+Provide a stand-alone smartphone UI playground for Atmungsraum, with a stable
+synthetic ECG feed and reproducible operator screens for design refinement.
 
-## Primary goal
+## Active checklist
 
-Deliver the smallest usable result that satisfies the current user request and
-can be verified at its real output surface.
+- [x] Pin the existing German UI and keep the HTML IDs, CSS and shared renderers.
+- [x] Implement mock pairing, control ownership, participant form, Polar and ECG,
+  breathing setup, session controls, kiosk status and synthetic downloads.
+- [x] Reuse the original seeded NeuroKit2 fixture with a hash check.
+- [x] Verify the complete browser flow and the responsive layout matrix.
+- [ ] Verify the exact GitHub Pages deployment.
 
-## Goal and session continuity
+## Ownership
 
-Overall goal: the purpose above. Product acceptance criteria are **Undecided**
-until the first product task defines observable outcomes.
+Static HTML/CSS and JavaScript at the repository root. `app.js` owns
+Pretext measurement. `playground.js` owns in-page mock UI state.
+`simulation.js` maps the fixture to display inputs and synthetic CSV.
+There is no native, browser-to-device or cloud transport. Keep fixture inputs
+ephemeral and synthetic. See [README](../README.md) for transferring design
+changes to the original app.
 
-Resume existing GSD `.planning/` state or the established project checklist.
-Until an execution workflow owns the state, use this small active checklist:
+Upstream visuals are pinned to `3f8d7c8befa3c13d1e8f574e82082468ba5128f7`.
+The ECG binary and generator come from the original Atmungsraum work at
+`1a8057234a69bbfec40ca937983f036b7d8df5e0`. The manifest records the seed,
+versions and checksum. No ECG data was acquired from a person.
 
-- [ ] Define the first product outcome and its acceptance evidence.
-- [ ] Implement the agreed outcome and retain its verification result.
-
-Replace these bootstrap tasks with the agreed product tasks. Before a session
-ends, record the next concrete action, blockers, evidence, and last-observed
-branch/commit/publication state in the canonical task owner. Keep one active
-checklist and do not close the overall goal before its acceptance criteria pass.
-
-## Non-goals
-
-- No speculative framework, service, abstraction, compatibility layer, or
-  deployment system.
-- No second implementation tree or duplicate source of truth.
-- No capability claim without matching evidence.
-
-Add project-specific non-goals only after they prevent a plausible wrong turn.
-
-## Product/control-plane boundary
-
-- Product source and deliverables: outside `for-ai/`; exact roots are
-  **Undecided until the first deliverable selects them**.
-- Agent orchestration and durable project memory: `for-ai/`.
-- Local generated diagnostics and scratch evidence: `.for-ai-local/` (ignored).
-
-## Architecture and ownership
-
-The implementation stack, modules, external contracts, and deployment surface
-are currently **Undecided**. Once selected, record only the top-level ownership
-map here and route detailed protocols to task-specific files.
-
-## Current verified state
-
-- Fresh Git repository initialized on 2026-11-16.
-- AI control plane created and mechanically checked.
-- No product implementation has been scaffolded.
-
-Git and runnable checks are the authority for branch, revision, and behavior.
-Do not turn this section into a second status ledger.
+Local verification passed all three Node tests and the Chrome flow, including
+32-second calibration, viewport reflow, 200% text and text spacing. The
+first Pages deployment will be checked at the exact pushed commit.
