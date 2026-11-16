@@ -21,14 +21,15 @@ and the normal run controls. The Simulation menu provides alternate states.
   finalized recording transfers, and the synthetic CSV download.
 - [x] Meet the single-viewport contract in the strict Chrome audit. The
   [smartphone GUI release gate](./VERIFICATION.md#smartphone-gui-release-gate)
-  passed seven viewport cases, including 200% text and text spacing overrides.
+  passed 25 screens and dialogs across seven viewport cases, including 200%
+  text and text spacing overrides.
   The browser flow also preserves keyboard focus during a reduced-height
   viewport test.
 
 ## Smartphone GUI design rules
 
-1. Treat every active screen, form, expanded state, dialog, and overlay as a
-   single smartphone viewport. Fit every field, label, status, action, and
+1. Fit every step that waits for user input into one smartphone viewport,
+   including forms, dialogs, and overlays. Fit every field, label, status, action, and
    focus indicator for that state inside the usable visual viewport. Account
    for safe areas, browser chrome, and the on-screen keyboard during input.
 2. The document and every app-authored region must have zero horizontal and
@@ -46,17 +47,19 @@ and the normal run controls. The Simulation menu provides alternate states.
 4. Use the locked `@chenglou/pretext` dependency through the existing
    measurement owner. Measure every bounded text region against its actual
    inner width and height with matching loaded fonts, spacing, and locale.
-   Confirm the painted result. When a state exceeds the available space,
-   rearrange its groups or divide the task into explicit one-viewport steps,
-   pages, or detail views with reachable navigation and preserved input.
-   Each resulting view must fit with full readable text and controls.
+   Confirm the painted result. Keep each step's complete input and actions
+   visible together. Use task-specific dialogs for optional controls.
+   Every resulting view must fit with full readable text and controls.
+5. Show background checks as neutral black-and-white SVG icons while checking,
+   green on confirmation and red on failure. Each red icon opens one diagnostic
+   popup. Keep diagnostic feedback inside that popup and omit generic page arrows.
 
 ## Ownership
 
 Static HTML/CSS and JavaScript at the repository root. `app.js` owns
-Pretext measurement and `viewport.js` paginates content against the usable
-viewport. `playground.js` wires the original operator controller and
-clients in `vendor/atmungsraum/` to the in-page Quest, recording, and Drive
+Pretext measurement and usable viewport sizing. `connectivity.js` projects
+background check results into diagnostic icons. `playground.js` wires the
+original operator controller and clients in `vendor/atmungsraum/` to the in-page Quest, recording, and Drive
 backends. The transport exercises the clients' signed and encrypted message
 validation. Discovery returns synthetic metadata. Recordings use a fixed demo
 identity and a dedicated browser cache. Requests stay on the page's origin.

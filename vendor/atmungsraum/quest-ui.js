@@ -2,15 +2,16 @@ import { sameQuest, operationId, controllerAccessState } from './quest-gateway.j
 import { canRecenter, polarSetup, polarReadiness, QuestRehearsal, rehearsalActions, rehearsalPolarAllowed, rehearsalScenarios } from './quest-rehearsal.js?v=27';
 import { ecgTrace, questRecording, questRecordings, questPrefixBatches } from './quest-data.js?v=26';
 import { openQuestRecordingStore } from './quest-recording-store.js?v=4';
-import { mountQuestDrive } from './quest-drive-ui.js?v=5';
+import { mountQuestDrive } from './quest-drive-ui.js?v=6';
 import { BreathingSetup } from './breathing-setup.js?v=8';
 import { LiveBreathDisplay } from '../../live-breath-display.js?v=4';
 import { LiveEcgDisplay } from '../../live-ecg-display.js?v=1';
 import { KioskControl } from './kiosk-control.js?v=2';
-import { ApkRelease } from './quest-release.js?v=1';
-import { focusInViewport } from '../../viewport.js';
+import { ApkRelease } from './quest-release.js?v=2';
+import { showConnectionChecks } from '../../connectivity.js';
 
 const byId = (id) => document.getElementById(id);
+const focusInViewport = element => element.focus({ preventScroll: true });
 const text = (element, value) => { if (element.textContent !== value) element.textContent = value; };
 const archiveDate = new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'medium' });
 const liveSync = new URLSearchParams(location.search).get('live-sync') !== 'off';
@@ -81,6 +82,8 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   const scenarioOptions = Array.from(scenario.options);
   const participant = byId('quest-participant');
   const participantLabel = byId('quest-participant-label');
+  const participantDialog = byId('participant-dialog');
+  const inputDialog = byId('input-dialog');
   const participantForm = byId('patient-form');
   const participantFields = byId('patient-fields');
   const participantSubmit = byId('patient-next');
@@ -151,9 +154,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     if (status && !connecting) joinMessage = '';
     find.hidden = Boolean(status || pairingChoice);
     find.setAttribute('aria-disabled', String(Boolean(connecting)));
-    const hint = !status ? (savedPair?.enrollment && autoConnect
-      ? 'Warte auf die gespeicherte Quest.'
-      : 'Starte die Quest im Fernmodus und schalte Bluetooth am Smartphone ein.')
+    const hint = !status ? 'Quest verbinden.'
       : waitingForControl ? (access.active_phone ? 'Ein anderes Smartphone steuert die Quest.' : 'Übernimm die Quest-Steuerung auf diesem Smartphone.')
       : status.h === 'panel' ? 'Schließe das Bedienfeld in der Quest und kehre zur VR-Szene zurück.'
       : !rehearsalPolarAllowed(status) ? 'Diese Sitzung ist nicht für den Probelauf freigegeben.'
@@ -162,12 +163,12 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
         ? 'Warte auf aktuelle Polar-H10-Daten von der Quest.'
       : status.p === 'IDLE' && !actions.play ? 'Warte auf die VR-Szene und den Probelauf.'
       : labels[status.p] ?? 'Quest bereitet den Probelauf vor.';
-    text(statusText, joinMessage || (unknown
-      ? 'Ergebnis unklar. Prüfe die Quest. Es wird kein Befehl wiederholt.'
-      : connecting ? 'Quest wird verbunden …' : commandWaiting ? 'Warte auf Bestätigung der Quest …'
-        : waitingForControl ? hint : message || hint));
+    text(statusText, unknown ? 'Bestätigung ausstehend.'
+      : pairingChoice ? 'Kopplung bestätigen.'
+        : connecting ? 'Quest wird verbunden …' : commandWaiting ? 'Warte auf Bestätigung der Quest …'
+          : waitingForControl ? hint : message || hint);
     if (status && connectingFocus) focusInViewport(statusText);
-    clock.hidden = !status;
+    clock.hidden = !active;
     if (status) {
       const seconds = Math.floor(status.ms / 1000);
       text(clock, [Math.floor(seconds / 60), seconds % 60].map((part) => String(part).padStart(2, '0')).join(':'));
@@ -197,51 +198,57 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     const showPreview = idle && (participantComplete || recoveringSetup) && (setupComplete || !preview.hidden || breath.setup?.attempt > 0 || recoveringSetup)
       && !previewAccepted && status.h === 'vr-preparation'
       && rehearsalPolarAllowed(status) && !unknown && (!waiting || !preview.hidden || recoveringSetup);
-    byId('quest-control-host').hidden = !access || showPreview;
-    byId('preview-control-host').hidden = !access || !showPreview;
-    const controlHost = byId(showPreview ? 'preview-control-host' : 'quest-control-host');
-    if (access && controlPanel.parentElement !== controlHost) controlHost.append(controlPanel);
-    const settings = byId('quest-settings');
-    const settingsHost = byId(showPreview ? 'preview-settings-host' : 'quest-settings-host');
-    if (settings.parentElement !== settingsHost) settingsHost.append(settings);
-    const versionPanel = byId('quest-version');
-    const versionHost = byId(showPreview ? 'preview-version-host' : 'quest-version-host');
-    if (versionPanel.parentElement !== versionHost) versionHost.append(versionPanel);
     const version = apkRelease.update(rehearsal.gateway, status);
-    versionPanel.hidden = !status;
-    versionPanel.dataset.versionState = version.state;
-    text(byId('apk-update-status'), version.message);
-    text(byId('apk-installed'), version.installedLabel);
-    text(byId('apk-required'), version.required);
+    text(byId('apk-update-status'), version.state === 'required' ? 'APK-Update erforderlich.'
+      : version.state === 'check-unavailable' ? 'Freigabestand nicht verfügbar.'
+        : version.state === 'unknown' ? 'Prüfe die APK im Headset.' : version.message);
+    text(byId('apk-installed'), version.installed
+      ? 'Installiert: ' + version.installed.version_name + ' · Code ' + version.installed.version_code
+      : 'Installierte APK nicht bestätigt.');
+    byId('apk-required').hidden = !version.minimumCode;
+    text(byId('apk-required'), version.minimumCode ? 'Benötigt: Code ' + version.minimumCode : '');
+    const apkIdentity = byId('apk-identity');
+    apkIdentity.hidden = !version.installed;
     text(byId('apk-full-identity'), version.identity);
-    settings.hidden = !status;
     const kioskView = kiosk.update(rehearsal.gateway, { status, busy: waiting, pending, unknown });
     text(byId('kiosk-summary'), kioskView.summary);
-    text(byId('kiosk-prerequisites'), kioskView.prerequisites);
+    text(byId('kiosk-prerequisites'), kioskView.canRetry ? 'Kiosk-Dienst unterbrochen. Stelle die Verbindung erneut her.'
+      : kioskView.prerequisites);
     text(byId('kiosk-detail'), kioskView.value ? `Quest-Status: ${kioskView.value.state} · Dienst: ${kioskView.value.service}${kioskView.value.blocked ? ` · Blockiert: ${kioskView.value.blocked}` : ''}${kioskView.value.detail ? ` · ${kioskView.value.detail}` : ''}` : '');
-    text(byId('kiosk-message'), kioskView.message);
+    text(byId('kiosk-message'), kioskView.value?.effective && kioskView.message
+      ? 'Kiosk-Dienst wieder verbunden.' : kioskView.message);
     byId('kiosk-message').hidden = !kioskView.message;
     byId('kiosk-retry').hidden = !kioskView.canRetry;
     byId('kiosk-check').hidden = !kioskView.canCheck;
     byId('kiosk-acknowledge').hidden = !kioskView.canAcknowledge;
     paintBreathingSetup(breath, waiting);
     const showParticipant = requiresParticipant && armedWithParticipant && status.p === 'IDLE' && !active && !waitingForControl;
-    if (!showParticipant && !participant.hidden && participant.contains(document.activeElement)) {
+    if (!showParticipant && participantDialog.open) {
+      participantDialog.close();
       focusInViewport(statusText);
     }
     participant.hidden = !showParticipant;
     participantFields.disabled = !showParticipant || waiting || unknown;
     participantSubmit.disabled = participantFields.disabled;
-    text(participantLabel, participantId ? `Teilnehmer-ID: ${participantId}` : 'Teilnehmer-ID eingeben');
+    text(participantLabel, participantId || 'Teilnehmer-ID eingeben');
     const hadPolarFocus = document.activeElement === polarConnect;
     const recoveringStreams = Boolean(setup?.c && !ready && (setup.ar === true || setup.auto?.state === 'streams'));
     const automaticConnection = ['scanning', 'backoff', 'connecting'].includes(setup?.auto?.state);
     polar.hidden = status?.p !== 'IDLE' || active || waitingForControl;
     text(polarStatus, polarReadiness(setup));
-    text(byId('preview-polar-status'), polarStatus.textContent);
-    text(polarConnect.firstElementChild, ready ? 'Messsignale bereit'
-      : setup?.c ? 'Fehlende Messsignale starten' : 'Polar H10 verbinden');
-    polarConnect.hidden = recoveringStreams || automaticConnection;
+    const polarReady = Boolean(ready || active && status?.pi?.r === true && status.pi.f === true);
+    text(byId('polar-feedback'), polarReady ? 'Polar H10 liefert EKG und Bewegung.'
+      : setup?.c ? (setup.e ? 'Bewegungsdaten fehlen.' : 'EKG-Signal fehlt.')
+        : setup?.p && setup.b ? 'Polar H10 ist nicht verbunden.'
+          : idle ? polarStatus.textContent : 'Aktuelle Polar-H10-Daten fehlen.');
+    showConnectionChecks({ status, version, polar: polarReady, kiosk: Boolean(kioskView.value?.effective),
+      checking: Boolean(connecting && !rehearsal.gateway), bridgeFailure: !connecting && !pairingChoice ? joinMessage : '' });
+    byId('control-open').disabled = !access;
+    byId('recordings-open').disabled = status?.ecg_preview !== 1;
+    byId('ecg-open').disabled = status?.ecg_preview !== 1;
+    byId('drive-open').disabled = !rehearsal.gateway?.recordings;
+    text(polarConnect.firstElementChild, setup?.c ? 'Messsignale starten' : 'Polar H10 verbinden');
+    polarConnect.hidden = Boolean(ready || recoveringStreams || automaticConnection);
     polarConnect.disabled = recoveringStreams || waiting || unknown || !setup?.p || !setup.b || !setup.c && setup.l === 'disabled' || setup.sc || ready;
     if ((polar.hidden || polarConnect.hidden) && hadPolarFocus) focusInViewport(statusText);
     play.hidden = !status || idle && !selectionAllowed;
@@ -268,6 +275,8 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     finish.disabled = waiting || unknown || !actions.finish;
     const recovery = rehearsal.recovery();
     byId('quest-recovery').hidden = !recovery;
+    byId('quest-recovery-open').hidden = !recovery;
+    if (!recovery && byId('quest-recovery-dialog').open) byId('quest-recovery-dialog').close();
     if (recovery) {
       text(byId('quest-recovery-title'), recovery.title);
       text(byId('quest-recovery-detail'), recovery.detail);
@@ -315,9 +324,9 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     if (view.available) previewCircle.style.transform = `scale(${view.radius})`;
     text(previewStatus, !view.available ? 'Warte auf den Atemtakt der Quest.'
       : !native.playing ? native.stage === 'idle' ? 'Automatic ist bereit.' : 'Atemschleife auf der Quest angehalten.' : `Atemtakt: ${view.phaseLabel}`);
-    const measured = view.inputPhaseLabel ? ` · Erkannt: ${view.inputPhaseLabel}` : '';
+    const measured = view.inputPhaseLabel ? ` · ${view.inputPhaseLabel}` : '';
     const hasVolume = !view.renderer && (native?.input === 'automatic' || view.inputVolume !== null);
-    text(previewInputLabel, view.available ? `Bestätigte Eingabe: ${view.inputLabel}${measured}${hasVolume ? ' · Rohwert der Eingabe: ' : ''}` : 'Eingabe auf der Quest nicht verfügbar.');
+    text(previewInputLabel, view.available ? `${view.inputLabel}${measured}${hasVolume ? ' · Signal: ' : ''}` : 'Eingabe nicht verfügbar.');
     previewSwitch.hidden = !view.pendingInputLabel;
     text(previewSwitch, view.pendingInputLabel ? `Angefragt: ${view.pendingInputLabel}. Die bestätigte Eingabe gilt bis zur Rückmeldung der Quest.` : '');
     const collecting = view.showPolarCalibration && ['waiting', 'collecting'].includes(native?.calibration);
@@ -330,7 +339,8 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
       : view.recoveryUnavailable ? view.blockedReason
       : view.message ? view.message
       : view.failure && native.input === 'automatic' ? `Einrichtung fehlgeschlagen: ${view.failureLabel}. Automatic bleibt aktiv. Du kannst erneut einrichten oder Controller State wählen.`
-      : view.blockedReason ? view.blockedReason
+      : view.blockedReason ? native?.audio_recovery_available
+        ? 'Die Atemschleife läuft nicht weiter. Wähle die Atemeingabe erneut.' : view.blockedReason
       : view.showPolarCalibration && native.calibration === 'waiting' ? 'Automatic ist aktiv. Die Einrichtung beginnt mit dem nächsten vollständigen Atemzyklus.'
       : view.showPolarCalibration && native.calibration === 'collecting' ? `Automatic ist aktiv. Folge dem Atemtakt für zwei vollständige Atemzyklen.${view.qualityWarning ? ` ${view.qualityWarning}` : ''}`
       : view.actions.continue ? 'Prüfe die Bewegung im Headset. Wenn die Eingabe passt, gehe weiter zur Auswahl.'
@@ -350,7 +360,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     text(previewProgressText, `${new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 }).format(view.progress.value)} von 2 Atemzyklen`);
     previewCalibrate.disabled = waiting || !view.actions.calibrate;
     previewCalibrate.hidden = !view.showPolarCalibration;
-    text(previewCalibrate.firstElementChild, native?.attempt > 0 ? 'Erneut persönlich einrichten' : 'Atmung persönlich einrichten');
+    text(previewCalibrate.firstElementChild, native?.attempt > 0 ? 'Neu kalibrieren' : 'Polar kalibrieren');
     previewPersonalReturn.hidden = view.showPolarCalibration;
     previewPersonalReturn.disabled = waiting || !view.actions.calibrate;
     for (const [button, mode, input] of [[previewPolarFixed, 'fixed', 'polar-tilt-fixed'], [previewPolarAdaptive, 'adaptive', 'polar-tilt-adaptive']]) {
@@ -358,11 +368,12 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
       button.disabled = waiting || !view.actions[`polar-${mode}`];
       button.setAttribute('aria-pressed', String(native?.input === input));
     }
-    byId('preview-modes-compatibility').hidden = !view.polarModesUpdateRequired;
     previewController.hidden = native?.input === 'controller-state';
     previewController.disabled = waiting || !view.actions.controller;
     previewContinue.disabled = waiting || !view.actions.continue;
     byId('preview-recovery').hidden = !view.recovery;
+    byId('breath-recovery-open').hidden = !view.recovery;
+    if (!view.recovery && byId('breath-recovery-dialog').open) byId('breath-recovery-dialog').close();
     if (view.recovery) {
       text(byId('preview-recovery-title'), view.recovery.title);
       text(byId('preview-recovery-detail'), view.recovery.detail);
@@ -420,9 +431,9 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
         actualCircle.style.transform = `scale(${current.actualRadius})`;
         actualCircle.toggleAttribute('data-stale', !current.actualLive);
         text(actualVolume, `${Math.round(current.actualProgress * 100)} %`);
-        text(actualStatus, current.actualLive ? 'IST-Radius · aktuell: ' : 'IST-Radius · eingefroren, warte auf Renderer: ');
+        text(actualStatus, current.actualLive ? 'IST-Radius: ' : 'IST-Radius · letzter Wert: ');
       } else text(actualStatus, breathing.view?.setup && !Object.hasOwn(breathing.view.setup, 'renderer')
-        ? 'IST-Radius nicht verfügbar · Quest-App aktualisieren.' : 'IST-Radius nicht verfügbar · warte auf aktuellen Renderer.');
+        ? 'IST-Radius: APK-Update nötig.' : 'IST-Radius: ausstehend.');
       previewCircle.hidden = !current?.desiredAvailable;
       if (current) {
         previewCircle.style.transform = `scale(${current.radius})`;
@@ -843,8 +854,8 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     if (participantFields.disabled) return;
     try {
       participantId = participantIdentity(Object.fromEntries(new FormData(participantForm))).id;
-      participant.open = false;
-      focusInViewport(participant.querySelector('summary'));
+      participantDialog.close();
+      focusInViewport(participant);
       paint();
     } catch {
       participantId = '';
@@ -881,11 +892,13 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     if (userAction || connecting || document.hidden) return;
     kiosk.acknowledge(); paint();
   });
-  previewCalibrate.addEventListener('click', () => setupAct('calibrate'));
-  previewPersonalReturn.addEventListener('click', () => setupAct('calibrate'));
-  previewPolarFixed.addEventListener('click', () => setupAct('polar-fixed'));
-  previewPolarAdaptive.addEventListener('click', () => setupAct('polar-adaptive'));
-  previewController.addEventListener('click', () => setupAct('controller'));
+  for (const [button, action] of [[previewCalibrate, 'calibrate'], [previewPersonalReturn, 'calibrate'],
+    [previewPolarFixed, 'polar-fixed'], [previewPolarAdaptive, 'polar-adaptive'], [previewController, 'controller']]) {
+    button.addEventListener('click', () => {
+      inputDialog.close();
+      void setupAct(action);
+    });
+  }
   previewAcknowledge.addEventListener('click', () => {
     if (breathing.recheckReceipt()) { void breathing.refresh().finally(paint); paint(); return; }
     if (breathing.acknowledgeRetired()) { resetPreview(); paint(); }
@@ -920,6 +933,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     autoConnect = false;
     resetPreview();
     detach();
+    byId('control-dialog').close();
     focusInViewport(find);
   });
   const timer = setInterval(tick, 1000);
@@ -968,5 +982,5 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   paint();
   void apkRelease.refresh();
   void tick();
-  return { refresh: tick };
+  return { refresh() { nextConnect = nextSavedProbe = 0; return tick(); } };
 }

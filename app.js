@@ -1,10 +1,37 @@
-import { mountPlayground } from './playground.js?v=3';
-import { mountViewport } from './viewport.js';
+import { mountPlayground } from './playground.js?v=4';
+import { mountDialogs } from './dialogs.js';
 
 const root = document.documentElement;
 let measureLabels = () => {};
-const layout = mountViewport(() => measureLabels());
+let frame;
+function layout() {
+  if (frame) return;
+  frame = requestAnimationFrame(() => {
+    frame = 0;
+    const height = Math.floor(window.visualViewport?.height ?? window.innerHeight);
+    const size = height + 'px';
+    if (root.style.getPropertyValue('--usable-height') !== size) root.style.setProperty('--usable-height', size);
+    root.toggleAttribute('data-short-viewport', height < 380);
+    measureLabels();
+  });
+}
+
+const observer = new MutationObserver(records => {
+  if (records.some(({ target, type, attributeName, oldValue }) => {
+    if (type === 'attributes' && target.getAttribute(attributeName) === oldValue) return false;
+    return !(target instanceof Element ? target : target.parentElement)?.closest('[data-live-value]');
+  })) layout();
+});
+observer.observe(document.body, { childList: true, characterData: true, subtree: true,
+  attributes: true, attributeOldValue: true, attributeFilter: ['hidden', 'open'] });
+observer.observe(root, { attributes: true, attributeFilter: ['style', 'lang'] });
+observer.observe(document.head, { childList: true });
+window.addEventListener('resize', layout);
+window.visualViewport?.addEventListener('resize', layout);
+document.fonts.addEventListener('loadingdone', layout);
+mountDialogs();
 mountPlayground();
+layout();
 
 async function initializeMeasurement() {
   try {

@@ -75,7 +75,8 @@ export class ApkRelease {
           : 'Für dieses APK-Paket ist kein Freigabestand hinterlegt. Ein Update-Bedarf kann nicht bestimmt werden.',
     };
     return {
-      state, installed, compatible: ['compatible', 'recommended'].includes(state), message: messages[state],
+      state, installed, minimumCode: entry?.minimum_version_code,
+      compatible: ['compatible', 'recommended'].includes(state), message: messages[state],
       installedLabel: installed ? `Installiert: ${installed.version_name} · Code ${installed.version_code} · Build ${installed.build_id.slice(0, 12)}` : 'Installiert: nicht verlässlich gemeldet.',
       required: entry ? `Mindestens Code ${entry.minimum_version_code}. Referenz: ${entry.version_name} · Code ${entry.latest_version_code}.`
         : this.state === 'checking' ? 'Benötigter APK-Stand wird geprüft.' : 'Benötigter APK-Stand nicht verfügbar.',

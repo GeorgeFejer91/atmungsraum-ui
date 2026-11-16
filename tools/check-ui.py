@@ -9,47 +9,50 @@ from urllib.parse import urlsplit
 from playwright.sync_api import expect, sync_playwright
 
 
-def reveal(page, selector):
-    target = page.locator(selector)
-    for _ in range(32):
-        page.evaluate("() => new Promise(requestAnimationFrame)")
-        state = page.wait_for_function("""selector => {
-            const panel = document.querySelector('dialog[open], .screen:not([hidden])');
-            const element = document.querySelector(selector);
-            if (!element) return null;
-            if (element.closest('details:not([open])') && !element.closest('summary') && !element.matches('details')) return null;
-            const item = element.closest('[data-page-index]') ?? element.querySelector('[data-page-index]');
-            if ((!element.closest('.screen-body') || item)
-              && element.getClientRects().length && element.checkVisibility()) {
-                if (element.matches(':is(input, textarea):enabled')) element.focus({ preventScroll: true });
-                return 'visible';
-            }
-            if (!item || !panel?.contains(item) || item.closest('[hidden]')) return null;
-            const current = Number(panel.dataset.page);
-            const wanted = Number(item.dataset.pageIndex);
-            if (current === wanted) return null;
-            return current < wanted ? 'Nächste Seite' : 'Vorherige Seite';
-        }""", arg=selector).json_value()
-        if state == "visible":
-            return target
-        panel = page.locator("dialog[open]") if page.locator("dialog[open]").count() else page.locator(".screen:not([hidden])")
-        panel.get_by_role("button", name=state, exact=True).click()
-    raise AssertionError(f"Unable to reach {selector} through the page controls")
+class AuditServer(ThreadingHTTPServer):
+    # Chromium requests the module graph concurrently.
+    request_queue_size = 64
+
+
+def menu(page, selector):
+    page.locator("#tools-open").click()
+    page.locator(selector).click()
+
+
+def close_dialog(page):
+    dialog = page.locator("dialog[open]")
+    expect(dialog).to_have_count(1)
+    page.keyboard.press("Escape")
+    expect(dialog).to_have_count(0)
 
 
 def simulation(page):
-    reveal(page, "#simulation-open").click()
+    menu(page, "#simulation-open")
     expect(page.locator("#simulation-dialog")).to_be_visible()
 
 
 def set_fixture(page, value):
     simulation(page)
-    reveal(page, "#simulation-state").select_option(value)
-    page.keyboard.press("Escape")
-    expect(page.locator("#simulation-open")).to_be_focused()
+    page.locator("#simulation-state").select_option(value)
+    close_dialog(page)
+
+
+def diagnose(page, check, dialog):
+    icon = page.locator("#check-" + check)
+    expect(icon).to_have_attribute("data-check", "unconfirmed", timeout=15000)
+    icon.click()
+    expect(page.locator(dialog)).to_be_visible()
+
+
+def choose_input(page, selector):
+    page.locator("#input-open").click()
+    expect(page.locator("#input-dialog")).to_be_visible()
+    page.locator(selector).click()
+    expect(page.locator("#input-dialog")).to_be_hidden()
 
 
 def layout_check(page):
+    assert not page.locator(".viewport-navigation, [data-page-index]").count()
     dimensions = page.evaluate("""async () => {
       for (let frame = 0; frame < 2; frame++) await new Promise(requestAnimationFrame);
       const root = document.documentElement;
@@ -90,13 +93,13 @@ def start_page(browser, url, width=390, height=844, clock=False):
 
 
 def enter_participant(page):
-    if page.locator("#quest-participant").get_attribute("open") is None:
-        reveal(page, "#quest-participant summary").press("Enter")
-    reveal(page, "#patient-surname").fill("tes")
-    reveal(page, "#patient-age").fill("30")
-    reveal(page, '[name=gender][value=other]').check()
+    page.locator("#quest-participant").press("Enter")
+    expect(page.locator("#participant-dialog")).to_be_visible()
+    page.locator("#patient-surname").fill("tes")
+    page.locator("#patient-age").fill("30")
+    page.locator("#patient-gender").select_option("other")
     expect(page.locator("#patient-id")).to_have_text("Tes_30_O")
-    reveal(page, "#patient-next").press("Enter")
+    page.locator("#patient-next").press("Enter")
     expect(page.locator("#breathing-preview")).to_be_visible()
     expect(page.locator("#preview-title")).to_be_focused()
 
@@ -104,19 +107,19 @@ def enter_participant(page):
 def check_pairing(browser, url):
     pairing_url = urlsplit(url)._replace(query="pairing=1", fragment="").geturl()
     page, errors = start_page(browser, pairing_url)
-    reveal(page, "#quest-find").click()
+    page.locator("#quest-find").click()
     expect(page.locator("#quest-pairing-code")).to_have_text(re.compile(r"^\d{6}$"))
-    reveal(page, "#quest-pairing-confirm").click()
-    expect(reveal(page, "#quest-participant")).to_be_visible()
-    expect(reveal(page, "#quest-control-release")).to_be_visible()
+    page.locator("#quest-pairing-confirm").click()
+    expect(page.locator("#quest-participant")).to_be_visible()
+    expect(page.locator("#check-bridge")).to_have_attribute("data-check", "ok")
     assert not errors, errors
     page.close()
 
 
 def check_reduced_viewport(browser, url):
     page, errors = start_page(browser, url)
-    reveal(page, "#quest-participant summary").press("Enter")
-    submit = reveal(page, "#patient-next")
+    page.locator("#quest-participant").press("Enter")
+    submit = page.locator("#patient-next")
     expect(submit).to_be_enabled()
     submit.press("Enter")
     surname = page.locator("#patient-surname")
@@ -131,75 +134,97 @@ def check_reduced_viewport(browser, url):
     page.close()
 
 
+def check_diagnostics(page):
+    for name in ("bluetooth", "bridge", "apk", "polar"):
+        icon = page.locator("#check-" + name)
+        expect(icon).to_have_attribute("data-check", "ok")
+        expect(icon).to_be_disabled()
+        expect(icon).to_have_css("color", "rgb(129, 233, 164)")
+    page.wait_for_function("""() => [...document.querySelectorAll('#corner-actions .check-icon svg use')]
+      .every(icon => icon.getBBox().width > 0)""")
+    for fixture, check, dialog, feedback, match in (
+        ("bluetooth-off", "bluetooth", "#bluetooth-dialog", "#bluetooth-feedback", "nicht gefunden"),
+        ("bridge-off", "bridge", "#bridge-dialog", "#bridge-feedback", re.compile(r"nicht erreichbar|keine bestätigten")),
+        ("no-apk", "apk", "#apk-dialog", "#apk-installed", "nicht bestätigt"),
+        ("old-apk", "apk", "#apk-dialog", "#apk-update-status", "Update"),
+    ):
+        set_fixture(page, fixture)
+        expect(page.locator(feedback)).to_be_hidden()
+        diagnose(page, check, dialog)
+        expect(page.locator("#check-" + check)).to_have_css("color", "rgb(255, 143, 143)")
+        expect(page.locator(feedback)).to_contain_text(match)
+        close_dialog(page)
+        expect(page.locator("#check-" + check)).to_be_focused()
+        set_fixture(page, "normal")
+        expect(page.locator("#check-" + check)).to_have_attribute("data-check", "ok", timeout=15000)
+
+
 def full_flow(browser, url, image):
     page, errors = start_page(browser, url, clock=True)
-    reveal(page, "#install-app").click()
+    check_diagnostics(page)
+    menu(page, "#install-app")
     expect(page.locator("#install-dialog")).to_be_visible()
-    page.keyboard.press("Escape")
-    expect(page.locator("#install-app")).to_be_focused()
-    expect(reveal(page, "#quest-control-release")).to_be_visible()
-    expect(page.locator("#quest-find")).to_be_hidden()
-    reveal(page, "#quest-control-release").click()
+    close_dialog(page)
+    expect(page.locator("#tools-open")).to_be_focused()
+    menu(page, "#control-open")
+    page.locator("#quest-control-release").click()
     expect(page.locator("#quest-participant")).to_be_hidden()
-    reveal(page, "#quest-control-claim").click()
-    expect(reveal(page, "#quest-participant")).to_be_visible()
-    reveal(page, "#recenter-vr").click()
+    page.locator("#quest-control-claim").click()
+    close_dialog(page)
+    expect(page.locator("#quest-participant")).to_be_visible()
+    page.locator("#recenter-vr").click()
     expect(page.locator("#quest-status")).to_have_text("VR-Szene zentriert.")
-    expect(page.locator("#quest-polar-connect")).to_be_disabled()
-    expect(page.locator("#quest-clock")).to_have_text("00:00")
-    expect(reveal(page, "#quest-ecg")).to_be_visible()
+    expect(page.locator("#quest-clock")).to_be_hidden()
+    menu(page, "#ecg-open")
+    expect(page.locator("#quest-ecg")).to_be_visible()
+    close_dialog(page)
     set_fixture(page, "signal-gap")
     page.wait_for_function("document.querySelector('#quest-ecg-trace').getAttribute('d').match(/M/g)?.length > 1")
-    set_fixture(page, "signal-loss")
-    expect(page.locator("#quest-ecg")).to_be_hidden()
-    reveal(page, "#quest-polar-connect").click()
-    expect(reveal(page, "#quest-ecg")).to_be_visible()
-    set_fixture(page, "polar-off")
-    reveal(page, "#quest-polar-connect").click()
-    expect(reveal(page, "#quest-ecg")).to_be_visible()
+    for fixture in ("signal-loss", "polar-off"):
+        set_fixture(page, fixture)
+        diagnose(page, "polar", "#polar-dialog")
+        page.locator("#quest-polar-connect").click()
+        expect(page.locator("#check-polar")).to_have_attribute("data-check", "ok")
+        close_dialog(page)
     set_fixture(page, "kiosk-error")
-    reveal(page, "#quest-settings > summary").click()
-    reveal(page, "#kiosk-retry").click()
+    menu(page, "#check-kiosk")
+    expect(page.locator("#kiosk-dialog")).to_be_visible()
+    page.locator("#kiosk-retry").click()
     expect(page.locator("#kiosk-summary")).to_contain_text(" · wirksam")
-    reveal(page, "#quest-settings > summary").click()
-    reveal(page, "#quest-drive > summary").click()
-    reveal(page, "#quest-drive-connect").click()
+    close_dialog(page)
+    menu(page, "#drive-open")
+    page.locator("#quest-drive-connect").click()
     expect(page.locator("#quest-drive-status")).to_contain_text("Google Drive verbunden")
+    close_dialog(page)
     enter_participant(page)
-    expect(page.locator("#preview-start")).to_be_hidden()
     expect(page.locator("#preview-continue")).to_be_disabled()
     expect(page.locator("#preview-status")).to_have_text("Automatic ist bereit.")
-    reveal(page, "#preview-calibrate").click()
-    expect(reveal(page, "#preview-actual-circle")).to_be_visible()
-    expect(reveal(page, "#preview-progress")).to_be_visible()
+    choose_input(page, "#preview-calibrate")
+    expect(page.locator("#preview-actual-circle")).to_be_visible()
+    expect(page.locator("#preview-progress")).to_be_visible()
     page.clock.fast_forward(49000)
     expect(page.locator("#preview-input-label")).to_contain_text("persönlich eingerichtet")
-    reveal(page, "#preview-polar-fixed").click()
+    choose_input(page, "#preview-polar-fixed")
     expect(page.locator("#preview-title")).to_have_text("Polar STATE testen")
     expect(page.locator("#preview-polar-fixed")).to_have_attribute("aria-pressed", "true")
-    reveal(page, "#preview-polar-adaptive").click()
+    choose_input(page, "#preview-polar-adaptive")
     expect(page.locator("#preview-polar-adaptive")).to_have_attribute("aria-pressed", "true")
-    set_fixture(page, "old-apk")
-    expect(page.locator("#preview-polar-adaptive")).to_be_hidden()
-    expect(page.locator("#apk-update-status")).to_contain_text("Update")
     set_fixture(page, "setup-error")
-    reveal(page, "#preview-controller").click()
-    expect(reveal(page, "#preview-recovery")).to_be_visible()
-    expect(page.locator("#preview-recovery")).to_be_hidden()
+    choose_input(page, "#preview-controller")
+    expect(page.locator("#breath-recovery-open")).to_be_visible()
+    expect(page.locator("#breath-recovery-open")).to_be_hidden()
     expect(page.locator("#preview-title")).to_have_text("Controller testen")
     if image:
         page.screenshot(path=image, full_page=True)
-    reveal(page, "#preview-continue").click()
+    page.locator("#preview-continue").click()
     expect(page.locator("#quest-condition")).to_be_focused()
-    reveal(page, "#quest-scenario").select_option("haupt-15")
+    page.locator("#quest-scenario").select_option("haupt-15")
     simulation(page)
-    reveal(page, "#simulation-speed").select_option("60")
-    page.keyboard.press("Escape")
+    page.locator("#simulation-speed").select_option("60")
+    close_dialog(page)
     play = page.locator("#quest-play")
     play.click()
     expect(play).to_have_text("Pause")
-    expect(page.locator("#quest-disconnect")).to_be_hidden()
-    expect(page.locator("#quest-polar")).to_be_hidden()
     expect(page.locator("#quest-drive-status")).to_have_text("Google Drive empfängt die laufende Aufnahme.", timeout=10000)
     minute, second = map(int, page.locator("#quest-clock").inner_text().split(":"))
     assert minute * 60 + second > 0
@@ -210,20 +235,22 @@ def full_flow(browser, url, image):
     assert page.locator("#quest-clock").inner_text() == paused
     play.click()
     expect(play).to_have_text("Pause")
-    reveal(page, "#quest-finish").click()
+    page.locator("#quest-finish").click()
     expect(page.locator("#breathing-preview")).to_be_visible()
-    reveal(page, "#preview-continue").click()
-    expect(reveal(page, "#quest-archives")).to_be_visible()
+    page.locator("#preview-continue").click()
     expect(page.locator("#quest-drive-status")).to_have_text("In Google Drive bestätigt: 1", timeout=15000)
+    menu(page, "#recordings-open")
+    expect(page.locator("#quest-archives")).to_be_visible()
     with page.expect_download() as pending:
-        reveal(page, "#quest-export-download").click()
+        page.locator("#quest-export-download").click()
     assert re.fullmatch(r"Dem_30_O_\d{4}-\d{2}-\d{2}_haupt-15_r1\.csv", pending.value.suggested_filename)
     exported = pending.value.path().read_text(encoding="utf-8")
     assert exported.startswith("source,sample_index,time_s,ecg_mock_uv\nmock-neurokit2,")
     assert "Tes_30_O" not in exported
+    close_dialog(page)
     simulation(page)
-    reveal(page, "#simulation-reset").click()
-    expect(reveal(page, "#quest-ecg")).to_be_visible()
+    page.locator("#simulation-reset").click()
+    expect(page.locator("#check-polar")).to_have_attribute("data-check", "ok")
     expect(page.locator("#patient-surname")).to_have_value("")
     assert not errors, errors
     page.close()
@@ -239,21 +266,21 @@ def matrix(browser, url):
         if spacing:
             page.add_style_tag(content="* {line-height:1.5 !important; letter-spacing:.12em !important;"
                                        "word-spacing:.16em !important} p {margin-bottom:2em !important}")
-        expect(reveal(page, "#quest-participant")).to_be_visible()
+        expect(page.locator("#quest-participant")).to_be_visible()
         layout_check(page)
         simulation(page)
         layout_check(page)
-        page.keyboard.press("Escape")
+        close_dialog(page)
         enter_participant(page)
         layout_check(page)
-        reveal(page, "#preview-polar-fixed").click()
-        reveal(page, "#preview-continue").click()
+        choose_input(page, "#preview-polar-fixed")
+        page.locator("#preview-continue").click()
         layout_check(page)
-        reveal(page, "#quest-play").click()
+        page.locator("#quest-play").click()
         expect(page.locator("#quest-play")).to_have_text("Pause")
         layout_check(page)
         assert not errors, errors
-        print(f"PASS rendered {width}x{height}, {font}% text, custom spacing {spacing}, connected workflow")
+        print(f"PASS rendered {width}x{height}, {font}% text, custom spacing {spacing}, single-screen workflow")
         page.close()
 
 
@@ -270,7 +297,7 @@ def main():
             def log_message(self, *_):
                 pass
 
-        server = ThreadingHTTPServer(("127.0.0.1", 0), partial(QuietHandler, directory=directory))
+        server = AuditServer(("127.0.0.1", 0), partial(QuietHandler, directory=directory))
         Thread(target=server.serve_forever, daemon=True).start()
         url = f"http://127.0.0.1:{server.server_port}/"
     try:

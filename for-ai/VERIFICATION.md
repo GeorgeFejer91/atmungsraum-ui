@@ -26,6 +26,9 @@ with these requirements.
   844 × 390 in landscape, and 1440 × 900 for desktop regression. Include 200%
   text, user text-spacing overrides, and both sides of relevant layout
   breakpoints. Check the claimed phone browsers.
+- Verify that input steps have no generic page arrows. Exercise successful
+  background checks and independent Bluetooth, bridge, APK, and Polar
+  failures. Check red-icon popup activation and focus restoration.
 - The strict browser gate checks document and nested overflow in both axes,
   viewport and control bounds, measured text fit, and stretch geometry. Each
   screen and dialog needs a direct header or heading, a flexible `.screen-body`,

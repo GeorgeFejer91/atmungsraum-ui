@@ -1,14 +1,13 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
-import { createMockQuest } from './mock-quest.js';
+import { createMockQuest } from './mock-quest.js?v=2';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
-import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js';
+import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=2';
+import { showBluetooth } from './connectivity.js';
 
 const byId = id => document.getElementById(id);
 
 export function mountPlayground() {
   const url = new URL(location.href);
-  const dialog = byId('simulation-dialog');
-  const trigger = byId('simulation-open');
   const view = byId('simulation-screen');
   view.value = url.hash === '#daten' ? 'history' : url.searchParams.has('pairing') ? 'pairing' : 'connected';
 
@@ -22,21 +21,14 @@ export function mountPlayground() {
     location.reload();
   }
 
-  trigger.addEventListener('click', () => {
-    dialog.showModal();
-    trigger.setAttribute('aria-expanded', 'true');
-  });
-  byId('simulation-close').addEventListener('click', () => dialog.close());
-  dialog.addEventListener('close', () => {
-    trigger.setAttribute('aria-expanded', 'false');
-    trigger.focus({ preventScroll: true });
-  });
   byId('simulation-reset').addEventListener('click', () => navigate('connected'));
   view.addEventListener('change', () => navigate(view.value));
 
   if (view.value === 'history') {
     byId('quest').hidden = true;
     byId('daten').hidden = false;
+    for (const icon of document.querySelectorAll('#corner-actions .check-icon')) icon.hidden = true;
+    for (const id of ['control-open', 'recordings-open', 'ecg-open', 'drive-open']) byId(id).disabled = true;
     byId('data-status').textContent = 'Keine früheren Browser-Aufnahmen vorhanden.';
     byId('simulation-state').disabled = byId('simulation-speed').disabled = true;
     byId('data-title').focus({ preventScroll: true });
@@ -44,6 +36,14 @@ export function mountPlayground() {
   }
 
   const quest = createMockQuest();
+  async function checkBluetooth() {
+    if (document.hidden) return;
+    const result = await quest.services.rediscoverQuest();
+    showBluetooth(result.state === 'ready');
+  }
+  void checkBluetooth();
+  setInterval(checkBluetooth, 1000);
+  document.addEventListener('visibilitychange', checkBluetooth);
   const journal = new Map();
   const storage = {
     getItem: key => journal.get(key) ?? null,
@@ -59,6 +59,7 @@ export function mountPlayground() {
     { ...quest.services, storage, driveOptions: createMockDrive() });
   byId('simulation-state').addEventListener('change', event => {
     quest.setFixture(event.target.value);
+    void checkBluetooth();
     void page.refresh();
   });
   byId('simulation-speed').addEventListener('change', event => quest.setSpeed(Number(event.target.value)));

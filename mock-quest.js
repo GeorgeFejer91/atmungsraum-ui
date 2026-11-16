@@ -92,8 +92,8 @@ export function createMockQuest() {
       y: { s: setupId, g: Number(owner.native_epoch), r: polarRevision, p: true, b: true,
         c: connected, a: acc, e: ecg && !lost, sc: false, l: 'enabled', x: selected ? sensorId : '',
         d: scanned ? [sensorId] : [], auto: { v: 1, state: lost || !connected ? 'stopped' : 'ready', retry_ms: 0, reason: '' } },
-      apk: { v: 1, package_name: 'org.viscereality.atmungsraum.developer', version_code: old ? 10 : 11,
-        version_name: old ? '0.2.9-dev' : '0.2.10-dev', build_id: fingerprint },
+      ...(fixture === 'no-apk' ? {} : { apk: { v: 1, package_name: 'org.viscereality.atmungsraum.developer',
+        version_code: old ? 10 : 11, version_name: old ? '0.2.9-dev' : '0.2.10-dev', build_id: fingerprint } }),
       kiosk: { v: 1, g: kioskRevision, requested: true, effective: kioskReady, retry_available: !kioskReady,
         state: kioskReady ? 'active' : 'interrupted', service: kioskReady ? 'connected' : 'interrupted',
         blocked: '', detail: '' },
@@ -239,13 +239,23 @@ export function createMockQuest() {
     return saveReceipt(command, accepted ? 'confirmed' : 'rejected');
   }
 
-  const fetcher = mockQuestFetch({ endpoint, owner, enrollment, dispatch, approved: () => changeRole('active') });
+  const localFetch = mockQuestFetch({ endpoint, owner, enrollment, dispatch, approved: () => changeRole('active') });
+  async function fetcher(...args) {
+    if (fixture === 'bridge-off') throw new TypeError('WLAN-Brücke nicht erreichbar.');
+    return localFetch(...args);
+  }
+  async function rediscoverQuest() {
+    return fixture === 'bluetooth-off' ? { state: 'bluetooth-off' } : discovery;
+  }
   return {
     savedPair: { ...owner, endpoint, enrollment, build: fingerprint },
     services: {
-      selectQuest: async () => ({ id: 'audit-bluetooth' }),
-      readQuest: async () => discovery,
-      rediscoverQuest: async () => discovery,
+      selectQuest: async () => {
+        if (fixture === 'bluetooth-off') throw new DOMException('Bluetooth ist deaktiviert.', 'NotFoundError');
+        return { id: 'audit-bluetooth' };
+      },
+      readQuest: rediscoverQuest,
+      rediscoverQuest,
       joinQuest: options => joinQuest({ ...options, fetcher }),
       pairPhone: options => pairPhone({ ...options, fetcher }),
     },

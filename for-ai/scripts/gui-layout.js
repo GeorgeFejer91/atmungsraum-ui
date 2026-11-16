@@ -22,6 +22,7 @@ async () => {
   };
 
   reportOverflow(root);
+  if (document.querySelector('.viewport-navigation, [data-page-index]')) problems.push('Generic viewport pagination is present');
   if (!activePanel) return { problems: [...problems, 'No active screen or dialog'] };
   if (!dialog) {
     const main = activePanel.closest('main');
@@ -76,9 +77,14 @@ async () => {
   if (bodyStyle.minWidth !== '0px' || bodyStyle.minHeight !== '0px') {
     problems.push(`${describe(activePanel)} stretch body needs shrinkable width and height`);
   }
-  const groups = [...body.children].filter(visible).map(element => element.getBoundingClientRect());
-  const gaps = groups.slice(1).reduce((sum, group, index) => sum + Math.max(0, group.top - groups[index].bottom), 0);
-  const contents = [...body.querySelectorAll('[data-page-index]')].filter(visible)
-    .map(element => element.id || element.textContent.trim() || describe(element));
-  return { problems, bodyWidth: bodyBox.width, bodyHeight: bodyBox.height, gap: gaps, groups: groups.length, contents };
+  const groups = [...body.children].filter(visible);
+  const rows = new Map();
+  for (const group of groups) {
+    const box = group.getBoundingClientRect();
+    rows.set(box.top, Math.max(box.bottom, rows.get(box.top) ?? 0));
+  }
+  const boxes = [...rows].sort(([left], [right]) => left - right);
+  const gap = boxes.slice(1).reduce((sum, [top], index) => sum + Math.max(0, top - boxes[index][1]), 0);
+  const contents = groups.map(element => element.id || element.textContent.trim() || describe(element));
+  return { problems, bodyWidth: bodyBox.width, bodyHeight: bodyBox.height, gap, groups: rows.size, contents };
 }

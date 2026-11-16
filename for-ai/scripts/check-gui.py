@@ -1,9 +1,8 @@
 from argparse import ArgumentParser
 from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import SimpleHTTPRequestHandler
 from io import BytesIO
 from pathlib import Path
-import re
 from runpy import run_path
 from subprocess import check_output, run
 from sys import stdin
@@ -25,71 +24,68 @@ class QuietHandler(SimpleHTTPRequestHandler):
 
 def measure_views(page, flow, url, style_text):
     expect = flow["expect"]
-    reveal = flow["reveal"]
+    menu, close = flow["menu"], flow["close_dialog"]
     samples = {}
 
     def capture(state):
-        panel = page.locator("dialog[open]") if page.locator("dialog[open]").count() else page.locator(".screen:not([hidden])")
-        previous = panel.get_by_role("button", name="Vorherige Seite", exact=True)
-        following = panel.get_by_role("button", name="Nächste Seite", exact=True)
-        expect(panel).to_have_attribute("data-page", re.compile(r"^\d+$"))
-        for _ in range(32):
-            if not previous.count() or not previous.is_enabled():
-                break
-            previous.click()
-        else:
-            raise AssertionError(f"Could not return to the first page for {state}")
-        for index in range(32):
-            name = state if index == 0 else f"{state} · page {index + 1}"
-            samples[name] = page.evaluate(LAYOUT_AUDIT)
-            if not following.count() or not following.is_enabled():
-                return
-            following.click()
-        raise AssertionError(f"Pagination did not finish for {state}")
+        samples[state] = page.evaluate(LAYOUT_AUDIT)
 
-    reveal(page, "#quest-participant")
+    expect(page.locator("#quest-participant")).to_be_visible()
     capture("startup")
+    page.locator("#tools-open").click()
+    capture("menu")
     page.locator("#install-app").click()
     expect(page.locator("#install-dialog")).to_be_visible()
     capture("install dialog")
-    page.keyboard.press("Escape")
+    close(page)
     flow["simulation"](page)
     capture("simulation dialog")
-    page.keyboard.press("Escape")
-    reveal(page, "#apk-identity > summary").click()
-    capture("APK identity")
-    reveal(page, "#apk-identity > summary").click()
-    reveal(page, "#quest-participant > summary").click()
+    close(page)
+    for fixture, check, dialog in (("bluetooth-off", "bluetooth", "#bluetooth-dialog"),
+                                   ("bridge-off", "bridge", "#bridge-dialog"),
+                                   ("no-apk", "apk", "#apk-dialog"),
+                                   ("old-apk", "apk", "#apk-dialog"),
+                                   ("signal-loss", "polar", "#polar-dialog")):
+        flow["set_fixture"](page, fixture)
+        flow["diagnose"](page, check, dialog)
+        capture(fixture)
+        if fixture == "old-apk":
+            page.locator("#apk-identity").click()
+            expect(page.locator("#apk-identity-dialog")).to_be_visible()
+            capture("APK identity")
+        close(page)
+        flow["set_fixture"](page, "normal")
+        expect(page.locator("#check-" + check)).to_have_attribute("data-check", "ok", timeout=15000)
+    page.locator("#quest-participant").click()
     capture("participant")
-    reveal(page, "#quest-participant > summary").click()
-    reveal(page, "#quest-drive > summary").click()
-    capture("drive form")
-    reveal(page, "#quest-drive > summary").click()
+    close(page)
+    for opener, state in (("#control-open", "control"), ("#ecg-open", "ECG"), ("#drive-open", "drive form")):
+        menu(page, opener)
+        capture(state)
+        close(page)
     flow["set_fixture"](page, "kiosk-error")
-    reveal(page, "#quest-settings > summary").click()
-    reveal(page, "#kiosk-diagnostics > summary").click()
-    expect(reveal(page, "#kiosk-retry")).to_be_visible()
+    menu(page, "#check-kiosk")
+    expect(page.locator("#kiosk-retry")).to_be_visible()
     capture("kiosk-error")
-    reveal(page, "#kiosk-retry").click()
-    reveal(page, "#quest-settings > summary").click()
-    flow["set_fixture"](page, "signal-loss")
-    expect(page.locator("#quest-polar-connect")).to_be_enabled()
-    capture("polar signal loss")
-    flow["set_fixture"](page, "normal")
-    expect(page.locator("#quest-polar-status")).to_contain_text("Quest empfängt EKG und Beschleunigungsdaten")
+    page.locator("#kiosk-retry").click()
+    expect(page.locator("#check-kiosk")).to_have_attribute("data-check", "ok")
+    capture("kiosk recovery")
+    close(page)
     flow["enter_participant"](page)
     capture("breathing")
-    flow["set_fixture"](page, "old-apk")
-    expect(reveal(page, "#preview-modes-compatibility")).to_be_visible()
-    capture("old-apk")
+    page.locator("#input-open").click()
+    capture("breathing input")
+    close(page)
     flow["set_fixture"](page, "setup-error")
+    page.locator("#breath-signal-open").click()
     expect(page.locator("#preview-detail")).to_contain_text("läuft nicht weiter")
-    capture("setup-error")
+    capture("breath signal warning")
+    close(page)
     flow["set_fixture"](page, "normal")
-    reveal(page, "#preview-calibrate").click()
-    expect(reveal(page, "#preview-progress")).to_be_visible()
+    flow["choose_input"](page, "#preview-calibrate")
+    expect(page.locator("#preview-progress")).to_be_visible()
     capture("calibration")
-    reveal(page, "#preview-polar-fixed").click()
+    flow["choose_input"](page, "#preview-polar-fixed")
     page.locator("#preview-continue").click()
     capture("scenario selection")
     page.locator("#quest-play").click()
@@ -97,12 +93,13 @@ def measure_views(page, flow, url, style_text):
     capture("session")
     page.locator("#quest-finish").click()
     page.locator("#preview-continue").click()
-    expect(reveal(page, "#quest-archives")).to_be_visible()
+    menu(page, "#recordings-open")
+    expect(page.locator("#quest-archives")).to_be_visible()
     capture("archive")
     page.goto(url + "?pairing=1")
     style_text()
     page.locator("#quest-find").click()
-    expect(reveal(page, "#quest-pairing-code")).to_be_visible()
+    expect(page.locator("#quest-pairing-code")).to_be_visible()
     capture("pairing")
     page.goto(url + "#daten")
     style_text()
@@ -130,7 +127,7 @@ def verify(directory):
     from playwright.sync_api import sync_playwright
 
     flow = run_path(str(directory / "tools/check-ui.py"))
-    server = ThreadingHTTPServer(("127.0.0.1", 0), partial(QuietHandler, directory=directory))
+    server = flow["AuditServer"](("127.0.0.1", 0), partial(QuietHandler, directory=directory))
     Thread(target=server.serve_forever, daemon=True).start()
     url = f"http://127.0.0.1:{server.server_port}/"
     matrix = {}
@@ -151,7 +148,7 @@ def verify(directory):
                 samples = measure_views(page, flow, url, style_text)
                 matrix[viewport] = samples
                 context = f"{width}x{height}, {font}% text, custom spacing {spacing}"
-                print(f"Checked {context}: {len(samples)} pages", flush=True)
+                print(f"Checked {context}: {len(samples)} screens and dialogs", flush=True)
                 for name, result in samples.items():
                     if result["problems"]:
                         violations.append(f"{context}, {name}: " + "; ".join(result["problems"][:4]))

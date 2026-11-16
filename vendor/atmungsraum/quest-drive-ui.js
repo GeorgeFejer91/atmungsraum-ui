@@ -66,8 +66,6 @@ export function mountQuestDrive({ library, fetcher }) {
             signal.throwIfAborted();
             connection = { drive, destination, expiresAt: performance.now() + expiresIn * 1000, checkFolderAfter: 0 };
             due = 0;
-            panel.open = false;
-            panel.querySelector('summary').focus({ preventScroll: true });
             finish('Google Drive verbunden. Gespeicherte Aufnahmen werden abgeglichen.');
           } catch (error) { if (!attempt.signal.aborted) finish(error.message); }
         } });
@@ -85,7 +83,7 @@ export function mountQuestDrive({ library, fetcher }) {
       binding = connection = null;
       button.disabled = !library;
       owner = next;
-      panel.hidden = !next;
+      if (!next && panel.open) panel.close();
       report('');
       if (!next) return;
       let store;

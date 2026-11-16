@@ -1,3 +1,5 @@
+import { openDialog } from './dialogs.js';
+
 export function mountAppInstall({
   button = document.getElementById('install-app'),
   dialog = document.getElementById('install-dialog'),
@@ -33,8 +35,7 @@ export function mountAppInstall({
   };
   const showHelp = () => {
     if (button.hidden || dialog.open) return;
-    dialog.showModal();
-    button.setAttribute('aria-expanded', 'true');
+    openDialog(dialog, button);
   };
   environment.addEventListener('beforeinstallprompt', event => {
     event.preventDefault();
@@ -62,18 +63,6 @@ export function mountAppInstall({
   });
   closeButton.addEventListener('click', () => dialog.close());
   dialog.addEventListener('keydown', event => { if (event.key === 'Escape') event.stopPropagation(); });
-  dialog.addEventListener('close', () => {
-    button.setAttribute('aria-expanded', 'false');
-    (button.hidden ? button.nextElementSibling : button)?.focus({ preventScroll: true });
-  });
-  // Reserve the dock's actual height when zoom or wrapping enlarges its label.
-  if (environment.ResizeObserver) {
-    const dock = button.parentElement, root = button.ownerDocument.documentElement;
-    new environment.ResizeObserver(() => {
-      const height = `${Math.ceil(dock.getBoundingClientRect().height)}px`;
-      if (root.style.getPropertyValue('--dock-height') !== height) root.style.setProperty('--dock-height', height);
-    }).observe(dock);
-  }
   sync();
   void checkInstalled();
 }
