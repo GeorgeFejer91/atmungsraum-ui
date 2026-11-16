@@ -42,6 +42,8 @@ main { display: grid; grid-template-rows: minmax(0, 1fr); min-width: 0; min-heig
 .pairing > p { grid-column: 1 / -1; }
 #quest-pairing-code { font: 700 1.6rem/1.2 monospace; letter-spacing: .12em; }
 #quest-clock { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+#quest-playback { display: grid; gap: calc(var(--gap) / 2); min-width: 0; }
+#quest-progress { display: block; width: 100%; height: 12px; margin: 0; accent-color: #74c5f2; }
 .quest-body:has(#session-choices:not([hidden])) {
   display: flex;
   flex-direction: column;

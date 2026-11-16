@@ -14,9 +14,9 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/app-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./style.css?v=scene-tiles">
+  <link rel="stylesheet" href="./style.css?v=scenario-progress">
   <script type="module" src="./pwa-install.js?v=2"></script>
-  <script type="module" src="./app.js?v=scene-tiles"></script>
+  <script type="module" src="./app.js?v=scenario-progress"></script>
 </head>
 <body>
   <header id="corner-actions" aria-label="Geräte und Menü">
@@ -275,7 +275,10 @@
           <button id="quest-pairing-cancel" type="button"><span data-measure>Abbrechen</span></button>
         </div>
         <button id="quest-find" type="button" aria-describedby="quest-status" hidden><span data-measure>Mit Bluetooth verbinden</span></button>
-        <p id="quest-clock" aria-label="Aktive Zeit auf der Quest" data-measure data-measure-sample="88:88" data-live-value hidden>00:00</p>
+        <div id="quest-playback" hidden>
+          <p id="quest-clock" data-measure data-measure-sample="88:88 / 88:88" data-live-value>00:00</p>
+          <progress id="quest-progress" aria-label="Szenariofortschritt" aria-describedby="quest-clock" value="0" hidden></progress>
+        </div>
         <button id="quest-participant" type="button" data-dialog="participant-dialog" aria-haspopup="dialog" aria-controls="participant-dialog" hidden><span id="quest-participant-label" data-measure>Teilnehmer-ID eingeben</span></button>
         <div id="session-choices" hidden>
           <fieldset id="quest-scenario">

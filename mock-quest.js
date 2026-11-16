@@ -86,6 +86,7 @@ export function createMockQuest(onBreathingCue = () => {}) {
       build: { v: 1, packaging_fingerprint: fingerprint },
       p: phase, h: phase === 'IDLE' ? 'vr-preparation' : 'vr-session', g: generation, r: 0,
       c: condition, rec: Boolean(run), ms: run ? Math.floor(elapsedRun(run, now) * 1000) : 0, pending: false,
+      ...(Number.isFinite(run?.duration) ? { duration_ms: run.duration * 1000 } : {}),
       participant_arm: 1, recenter: 1, ecg_preview: 1, recordings: 1, live_recording: 1, breath_setup: 1,
       a: ['track-ready', 'track-ready'], scenarios: Object.keys(runLengths),
       pi: { r: true, f: connected && ecg && acc && !lost },

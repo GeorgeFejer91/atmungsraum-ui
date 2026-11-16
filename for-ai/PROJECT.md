@@ -25,7 +25,9 @@ Simulation menu.
 4. **VR scenario and session.** Show three illustrated square tiles on one
    page: **Probe-Runde** (5 minutes), **Freie Erkundung** (end manually), and
    **Haupt-Runde** (15 minutes, one fixed condition). Select a tile and press
-   **Starten**. The session uses the existing pause, resume, and end controls.
+   **Starten**. Timed runs show elapsed and total time and a progress bar above
+   the pause and end controls. The bar holds while paused. Free exploration
+   shows elapsed time only.
 
 The current build starts in the simulated connected state and opens the
 participant form as a dialog. Its fixture exports use a fixed demo identity.
@@ -63,6 +65,9 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   Chrome verified keyboard selection, the fixed main condition, an untimed
   exploration run, and the synthetic downloads. The strict viewport audit
   checks that the tile labels and SVGs fit.
+- [x] Show progress for timed scenarios. Chrome verified pause and resume,
+  the untimed exploration display, automatic completion of the practice run,
+  and layout fit across the seven viewport cases of the strict audit.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 

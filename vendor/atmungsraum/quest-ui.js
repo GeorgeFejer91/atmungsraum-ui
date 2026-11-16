@@ -13,6 +13,10 @@ import { showConnectionChecks } from '../../connectivity.js';
 const byId = (id) => document.getElementById(id);
 const focusInViewport = element => element.focus({ preventScroll: true });
 const text = (element, value) => { if (element.textContent !== value) element.textContent = value; };
+const runTime = ms => {
+  const seconds = Math.floor(ms / 1000);
+  return [Math.floor(seconds / 60), seconds % 60].map(part => String(part).padStart(2, '0')).join(':');
+};
 const archiveDate = new Intl.DateTimeFormat('de-DE', { dateStyle: 'short', timeStyle: 'medium' });
 const cycleCount = new Intl.NumberFormat('en', { maximumFractionDigits: 2 });
 const liveSync = new URLSearchParams(location.search).get('live-sync') !== 'off';
@@ -60,7 +64,9 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   const controlClaim = byId('quest-control-claim');
   const controlRelease = byId('quest-control-release');
   let pairingChoice = null;
+  const playback = byId('quest-playback');
   const clock = byId('quest-clock');
+  const progress = byId('quest-progress');
   const recenter = byId('recenter-vr');
   const recenterNote = byId('recenter-vr-note');
   const polar = byId('quest-polar');
@@ -170,11 +176,15 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
         : connecting ? 'Quest wird verbunden …' : commandWaiting ? 'Warte auf Bestätigung der Quest …'
           : waitingForControl ? hint : message || hint);
     if (status && connectingFocus) focusInViewport(statusText);
-    clock.hidden = !active;
-    if (status) {
-      const seconds = Math.floor(status.ms / 1000);
-      text(clock, [Math.floor(seconds / 60), seconds % 60].map((part) => String(part).padStart(2, '0')).join(':'));
+    playback.hidden = !active;
+    const duration = status?.duration_ms;
+    const timed = active && Number.isSafeInteger(duration) && duration > 0;
+    progress.hidden = !timed;
+    if (timed) {
+      progress.max = duration;
+      progress.value = Math.min(status.ms, duration);
     }
+    if (active) text(clock, timed ? `${runTime(progress.value)} / ${runTime(duration)}` : runTime(status.ms));
     const setup = polarSetup(status);
     const source = rehearsal.gateway?.owner;
     if (calibrationBaseline && source && !sameQuest(calibrationBaseline.owner, source)) resetPreview();

@@ -10,8 +10,9 @@ accept or restart. After two Polar attempts the operator can also switch to a VR
 controller and check its response. Accepting opens a single page with three
 illustrated scenario tiles: **Probe-Runde** (5 minutes), **Freie Erkundung**
 (end manually), and **Haupt-Runde** (15 minutes, one fixed condition). Start,
-pause, resume, and end the run using the app's controls. Saved runs offer a
-synthetic CSV download.
+pause, resume, and end the run using the app's controls. Timed scenarios show
+a progress bar and elapsed versus total time; free exploration shows elapsed
+time. Saved runs offer a synthetic CSV download.
 
 Open **Simulation** to try Quest pairing, disconnect the Polar, drop its ECG
 signal, exercise a failed calibration, audio recovery or an older APK state,

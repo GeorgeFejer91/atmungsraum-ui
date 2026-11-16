@@ -1,7 +1,7 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
-import { createMockQuest } from './mock-quest.js?v=scene-tiles';
+import { createMockQuest } from './mock-quest.js?v=scenario-progress';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
-import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=scene-tiles';
+import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=scenario-progress';
 import { showBluetooth } from './connectivity.js';
 
 const byId = id => document.getElementById(id);
