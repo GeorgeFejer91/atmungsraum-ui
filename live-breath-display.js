@@ -1,5 +1,5 @@
 // Presentation only. Command admission and calibration completion stay native.
-const labels = ['Einatmen', 'Atem halten', 'Ausatmen', 'Atem halten'];
+const labels = ['Breathe in', 'Hold', 'Breathe out', 'Hold'];
 
 export class LiveBreathDisplay {
   reset() { this.anchor = null; this.actual = null; }

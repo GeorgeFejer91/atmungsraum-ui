@@ -44,11 +44,13 @@ def diagnose(page, check, dialog):
     expect(page.locator(dialog)).to_be_visible()
 
 
-def choose_input(page, selector):
-    page.locator("#input-open").click()
-    expect(page.locator("#input-dialog")).to_be_visible()
-    page.locator(selector).click()
-    expect(page.locator("#input-dialog")).to_be_hidden()
+def collect_calibration(page, button="#preview-calibrate"):
+    page.locator(button).click()
+    expect(page.locator("#preview-progress")).to_be_visible()
+    expect(page.locator("#preview-continue")).to_be_hidden()
+    expect(page.locator("#preview-actual-circle")).to_be_visible()
+    page.clock.fast_forward(49000)
+    expect(page.locator("#preview-continue")).to_be_enabled()
 
 
 def layout_check(page):
@@ -197,23 +199,21 @@ def full_flow(browser, url, image):
     expect(page.locator("#quest-drive-status")).to_contain_text("Google Drive verbunden")
     close_dialog(page)
     enter_participant(page)
-    expect(page.locator("#preview-continue")).to_be_disabled()
-    expect(page.locator("#preview-status")).to_have_text("Automatic ist bereit.")
-    choose_input(page, "#preview-calibrate")
-    expect(page.locator("#preview-actual-circle")).to_be_visible()
-    expect(page.locator("#preview-progress")).to_be_visible()
-    page.clock.fast_forward(49000)
-    expect(page.locator("#preview-input-label")).to_contain_text("persönlich eingerichtet")
-    choose_input(page, "#preview-polar-fixed")
-    expect(page.locator("#preview-title")).to_have_text("Polar STATE testen")
-    expect(page.locator("#preview-polar-fixed")).to_have_attribute("aria-pressed", "true")
-    choose_input(page, "#preview-polar-adaptive")
-    expect(page.locator("#preview-polar-adaptive")).to_have_attribute("aria-pressed", "true")
+    actions = page.locator("#breathing-preview button:visible")
+    expect(actions).to_have_text(["Start Calibration"], timeout=3000)
+    expect(page.locator(".preview-radius")).to_be_hidden()
+    collect_calibration(page)
+    expect(page.get_by_text("Please ask the participant if the particles are responding to their breathing.")).to_be_visible()
+    expect(actions).to_have_text(["Accept Calibration", "Restart Calibration"])
+    expect(page.locator("#preview-continue")).to_be_focused()
+    collect_calibration(page, "#preview-restart")
+    expect(actions).to_have_text(["Accept Calibration", "Restart Calibration", "Switch to Controller based Breath Measure"])
     set_fixture(page, "setup-error")
-    choose_input(page, "#preview-controller")
-    expect(page.locator("#breath-recovery-open")).to_be_visible()
-    expect(page.locator("#breath-recovery-open")).to_be_hidden()
-    expect(page.locator("#preview-title")).to_have_text("Controller testen")
+    page.locator("#preview-controller").click()
+    expect(page.locator("#preview-continue")).to_be_hidden()
+    expect(page.locator("#preview-continue")).to_be_visible()
+    expect(page.locator("#preview-status")).to_contain_text("controller")
+    expect(actions).to_have_text(["Accept Calibration", "Restart Calibration"])
     if image:
         page.screenshot(path=image, full_page=True)
     page.locator("#preview-continue").click()
@@ -248,6 +248,12 @@ def full_flow(browser, url, image):
     assert exported.startswith("source,sample_index,time_s,ecg_mock_uv\nmock-neurokit2,")
     assert "Tes_30_O" not in exported
     close_dialog(page)
+    page.locator("#quest-participant").click()
+    page.locator("#patient-surname").fill("neue")
+    page.locator("#patient-next").click()
+    expect(actions).to_have_text(["Start Calibration"])
+    collect_calibration(page)
+    expect(actions).to_have_text(["Accept Calibration", "Restart Calibration"])
     simulation(page)
     page.locator("#simulation-reset").click()
     expect(page.locator("#check-polar")).to_have_attribute("data-check", "ok")
@@ -260,7 +266,7 @@ def matrix(browser, url):
     for width, height, font, spacing in [(320, 640, 100, False), (390, 844, 200, False),
                                           (844, 390, 100, False), (390, 844, 100, True),
                                           (1440, 900, 100, False)]:
-        page, errors = start_page(browser, url, width, height)
+        page, errors = start_page(browser, url, width, height, clock=True)
         if font != 100:
             page.evaluate("size => document.documentElement.style.fontSize = size + '%'", font)
         if spacing:
@@ -273,7 +279,7 @@ def matrix(browser, url):
         close_dialog(page)
         enter_participant(page)
         layout_check(page)
-        choose_input(page, "#preview-polar-fixed")
+        collect_calibration(page)
         page.locator("#preview-continue").click()
         layout_check(page)
         page.locator("#quest-play").click()

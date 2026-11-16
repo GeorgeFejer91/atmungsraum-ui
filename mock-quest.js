@@ -19,7 +19,7 @@ const inputByCommand = {
 };
 const polarCommands = new Set(['scan', 'select', 'connect', 'start-ecg', 'start-acc']);
 
-export function createMockQuest() {
+export function createMockQuest(onBreathingCue = () => {}) {
   const owner = { serial: 'AUDIT-QUEST', device: randomHex(16), identity_kind: 'app-installation', epoch: '7', native_epoch: '8' };
   const enrollment = { controller: randomHex(16), key: randomHex(32) };
   const source = new MockECG();
@@ -42,12 +42,15 @@ export function createMockQuest() {
       saveReceipt(command, 'confirmed', { accepted: true, reason: 'accepted', recovery_generation: setup.g });
     }
     const frames = Math.floor(Math.max(0, now - (setup.started ?? now)));
-    const stageIndex = Math.floor((frames % cycle) / (cycle / 4));
+    const phaseNumber = Math.floor(frames / (cycle / 4));
+    const stageIndex = phaseNumber % phases.length;
     const target = setup.collectingAt === null ? 0 : cycle * 2;
     const completed = target ? Math.max(0, Math.min(target, Math.floor(now - setup.collectingAt))) : 0;
     const collecting = target > completed;
-    if (target && !collecting && setup.input === 'automatic') setup.input = 'polar-tilt';
+    const failed = Boolean(target && !collecting && setup.fail);
+    if (target && !collecting && !failed && setup.input === 'automatic') setup.input = 'polar-tilt';
     const playing = setup.started !== null && !recovery;
+    if (playing && phase === 'IDLE' && fixture !== 'setup-error') onBreathingCue(phaseNumber, setup.g);
     const ready = setup.input !== 'automatic' && !recovery;
     const old = fixture === 'old-apk';
     const volume = playing ? Math.min(1, breathVolumeAt(frames - 480) * .95 + .02) : 0;
@@ -55,7 +58,8 @@ export function createMockQuest() {
       v: 1, g: setup.g, r: setup.r, attempt: setup.attempt, input: setup.input,
       stage: recovery ? 'recovering' : collecting ? completed ? 'calibrating' : 'waiting' : playing ? 'testing' : 'idle',
       phase: phases[stageIndex], position_frames: frames, cycle_frames: cycle, target_frames: target, completed_frames: completed,
-      calibration: collecting ? completed ? 'collecting' : 'waiting' : target ? 'ready' : 'idle', failure: '', ready, playing,
+      calibration: collecting ? completed ? 'collecting' : 'waiting' : failed ? 'failed' : target ? 'ready' : 'idle',
+      failure: failed ? 'insufficient_range' : '', ready, playing,
       audio_state: playing ? 'playing' : 'paused', audio_generation: setup.g, experiment_elapsed_ms: 0,
       input_phase: !ready ? 'unknown' : ['inhale', 'hold', 'exhale', 'hold'][stageIndex], input_volume01: volume,
       source_clock_ready: true, clock_valid: fixture !== 'setup-error', parked: !playing && !recovery,
@@ -119,6 +123,7 @@ export function createMockQuest() {
     const elapsed = now - (setup.started ?? now);
     setup.r++;
     setup.input = inputByCommand[op];
+    setup.fail = op === 'calibrate' && fixture === 'calibration-fail';
     setup.collectingAt = op === 'calibrate' ? now + (Math.ceil(elapsed / cycle) * cycle - elapsed) : null;
     if (op === 'calibrate') setup.attempt++;
     setup.started ??= now;

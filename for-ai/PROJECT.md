@@ -16,8 +16,12 @@ Simulation menu.
    page and enable **Weiter**.
 2. **Teilnehmer-ID.** Enter or select and confirm the participant ID on its own
    page. The confirmed ID determines how the run's recordings are named.
-3. **ACC breathing calibration.** Calibrate accelerometer-based breathing input on
-   a dedicated page. Enable **Weiter** when calibration succeeds.
+3. **ACC breathing calibration.** Start the guided box breathing loop and
+   Polar calibration from one action. Keep the circles visible at review and
+   ask the operator to confirm the participant sees the particles respond.
+   **Accept Calibration** advances once the Quest reports a ready input.
+   **Restart Calibration** retries, and the controller option appears after
+   two Quest-reported Polar attempts for the current participant setup.
 4. **Round selection.** Choose **Haupt-Runde** or **Probe-Runde** on a dedicated
    page.
 5. **VR scenarios.** Show the scenario pages for the chosen round.
@@ -31,8 +35,7 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   enabling **Weiter**. Define how operators retry pairing or calibration and
   where they resume if a connection drops later.
 - Map VR conditions A/B, instructions, practice durations, and Box-Atmung to
-  the two round branches. Decide which breathing-input alternatives to expose
-  alongside the ACC calibration flow.
+  the two round branches.
 - Define where Start, Pause, Resume, and End belong in the scenario pages. Decide
   what operators see after saving a run, how recordings are named across repeat
   runs, and how to start another run or switch participants.
@@ -54,6 +57,10 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   text and text spacing overrides.
   The browser flow also preserves keyboard focus during a reduced-height
   viewport test.
+- [x] Simplify the calibration page to start, review, retry, and controller
+  fallback. Chrome verified the review gate, interrupted audio, two failed
+  attempts, controller selection, and reset for a new participant. The strict
+  audit passed 29 states across seven viewport cases using simulated signals.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 

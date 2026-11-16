@@ -1,4 +1,4 @@
-import { mountPlayground } from './playground.js?v=4';
+import { mountPlayground } from './playground.js?v=5';
 import { mountDialogs } from './dialogs.js';
 
 const root = document.documentElement;
@@ -45,11 +45,6 @@ async function initializeMeasurement() {
     let locale;
 
     measureLabels = () => {
-      if (locale !== root.lang) {
-        locale = root.lang;
-        setLocale(locale);
-        cache.clear();
-      }
       for (const element of document.querySelectorAll('[data-measure]')) {
         if (!element.getClientRects().length) continue;
         const style = getComputedStyle(element);
@@ -71,7 +66,12 @@ async function initializeMeasurement() {
           && rect.bottom <= box.bottom - parseFloat(style.paddingBottom) + 2);
         let fitsEstimate = true;
         if (!domOnly && value && width > 0) {
-          const key = JSON.stringify([font, value, letterSpacing, style.whiteSpace, style.wordBreak]);
+          const language = element.closest('[lang]')?.lang || root.lang;
+          if (locale !== language) {
+            locale = language;
+            setLocale(locale);
+          }
+          const key = JSON.stringify([language, font, value, letterSpacing, style.whiteSpace, style.wordBreak]);
           if (!cache.has(key)) {
             if (cache.size >= 128) cache.clear();
             cache.set(key, prepareWithSegments(value, font, { letterSpacing, whiteSpace: style.whiteSpace, wordBreak: style.wordBreak }));

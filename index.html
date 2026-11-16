@@ -14,9 +14,9 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/app-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./style.css?v=4">
+  <link rel="stylesheet" href="./style.css?v=5">
   <script type="module" src="./pwa-install.js?v=2"></script>
-  <script type="module" src="./app.js?v=5"></script>
+  <script type="module" src="./app.js?v=6"></script>
 </head>
 <body>
   <header id="corner-actions" aria-label="Geräte und Menü">
@@ -156,6 +156,7 @@
         <option value="signal-loss">EKG-Signal verloren</option>
         <option value="polar-off">Polar H10 getrennt</option>
         <option value="setup-error">Atemschleife unterbrochen</option>
+        <option value="calibration-fail">Kalibrierung fehlgeschlagen</option>
         <option value="bluetooth-off">Bluetooth getrennt</option>
         <option value="bridge-off">WLAN-Brücke getrennt</option>
         <option value="no-apk">APK fehlt</option>
@@ -250,27 +251,6 @@
     </div>
     <footer class="actions"><button id="quest-drive-connect" type="submit" disabled form="quest-drive-form"><span data-measure>Verbinden</span></button><button type="button" data-close><span data-measure>Schließen</span></button></footer>
   </dialog>
-  <dialog id="input-dialog" aria-labelledby="input-dialog-title" class="menu-dialog">
-    <header><h2 id="input-dialog-title" data-measure>Atemeingabe</h2></header>
-    <div class="screen-body">
-      <button id="preview-calibrate" type="button" disabled><span data-measure>Polar kalibrieren</span></button>
-      <button id="preview-personal-return" type="button" hidden disabled><span data-measure>Polar kalibrieren</span></button>
-      <button id="preview-polar-fixed" type="button" hidden disabled aria-pressed="false"><span data-measure>Polar · Feste Achse</span></button>
-      <button id="preview-polar-adaptive" type="button" hidden disabled aria-pressed="false"><span data-measure>Polar · Dynamische Achse</span></button>
-      <button id="preview-controller" type="button" disabled><span data-measure>Controller</span></button>
-    </div>
-    <footer class="actions"><button type="button" data-close><span data-measure>Schließen</span></button></footer>
-  </dialog>
-  <dialog id="breath-signal-dialog" aria-labelledby="breath-signal-dialog-title">
-    <header><h2 id="breath-signal-dialog-title" data-measure>Atemsignal</h2></header>
-    <div class="screen-body">
-      <p id="preview-actual"><span class="actual-status-box"><span id="preview-actual-status" data-measure>IST-Radius nicht verfügbar.</span></span><span id="preview-actual-volume" data-live-value data-measure data-measure-sample="100 %" hidden></span></p>
-      <p id="preview-input" aria-live="off"><span id="preview-input-label" data-measure>Eingabe auf der Quest nicht verfügbar.</span><span id="preview-input-volume" data-live-value data-measure data-measure-sample="100 %" hidden></span></p>
-      <p id="preview-switch" role="status" data-measure hidden></p>
-      <p id="preview-detail" role="status" data-measure>Warte auf den aktuellen Atemstatus der Quest.</p>
-    </div>
-    <footer class="actions"><button type="button" data-close><span data-measure>Schließen</span></button></footer>
-  </dialog>
   <dialog id="quest-recovery-dialog" aria-labelledby="quest-recovery-dialog-title">
     <header><h2 id="quest-recovery-dialog-title" data-measure>Quest-Status</h2></header>
     <div class="screen-body">
@@ -278,17 +258,6 @@
           <h2 id="quest-recovery-title" data-measure></h2>
           <p id="quest-recovery-detail" role="status" data-measure></p>
           <button id="quest-acknowledge" type="button" hidden><span data-measure>Bestätigung erneut abfragen</span></button>
-        </aside>
-    </div>
-    <footer class="actions"><button type="button" data-close><span data-measure>Schließen</span></button></footer>
-  </dialog>
-  <dialog id="breath-recovery-dialog" aria-labelledby="breath-recovery-dialog-title">
-    <header><h2 id="breath-recovery-dialog-title" data-measure>Atemeinrichtung</h2></header>
-    <div class="screen-body">
-      <aside id="preview-recovery" class="recovery-panel" aria-label="Status der Atemeinrichtung" hidden>
-          <h2 id="preview-recovery-title" data-measure></h2>
-          <p id="preview-recovery-detail" role="status" data-measure></p>
-          <button id="preview-acknowledge" type="button" hidden><span data-measure>Bestätigung erneut abfragen</span></button>
         </aside>
     </div>
     <footer class="actions"><button type="button" data-close><span data-measure>Schließen</span></button></footer>
@@ -329,28 +298,32 @@
       </div>
       <footer class="actions"><button id="quest-play" type="button" hidden><span data-measure>Starten</span></button><button id="quest-finish" type="button" hidden><span data-measure>Beenden</span></button></footer>
     </section>
-    <section class="screen" id="breathing-preview" aria-labelledby="preview-title" hidden>
-      <header class="screen-header"><h1 id="preview-title" data-measure tabindex="-1">Atmung einrichten</h1></header>
+    <section class="screen" id="breathing-preview" lang="en" aria-labelledby="preview-title" hidden>
+      <header class="screen-header"><h1 id="preview-title" data-measure tabindex="-1">Breathing Calibration</h1></header>
       <div class="screen-body preview-body">
-        <div class="breath-visual">
+        <div class="breath-visual" hidden>
           <div class="preview-radius" aria-hidden="true"><div id="preview-circle"></div><div id="preview-actual-circle" hidden></div></div>
-          <p id="preview-status" role="status" data-measure>Warte auf den Atemtakt der Quest.</p>
+          <span id="preview-phase" data-measure data-measure-sample="Breathe out" data-live-value></span>
         </div>
         <div id="preview-progress-group" hidden>
-          <label for="preview-progress" data-measure>Kalibrierung</label>
+          <label for="preview-progress" data-measure>Calibration progress</label>
           <div class="preview-progress-track">
             <progress id="preview-progress" max="2" value="0" aria-describedby="preview-progress-text"></progress>
             <span id="preview-progress-fill" aria-hidden="true"></span>
           </div>
-          <p id="preview-progress-text" aria-live="off" data-measure data-measure-sample="1,99 von 2 Atemzyklen" data-live-value>0 von 2 Atemzyklen</p>
+          <span id="preview-progress-text" data-measure data-measure-sample="1.99 of 2 cycles" data-live-value>0 of 2 cycles</span>
         </div>
-        <div class="action-grid">
-          <button id="input-open" type="button" data-dialog="input-dialog" aria-haspopup="dialog" aria-controls="input-dialog"><span data-measure>Atemeingabe</span></button>
-          <button id="breath-signal-open" type="button" data-dialog="breath-signal-dialog" aria-haspopup="dialog" aria-controls="breath-signal-dialog"><span data-measure>Atemsignal</span></button>
-          <button id="breath-recovery-open" type="button" data-dialog="breath-recovery-dialog" aria-haspopup="dialog" aria-controls="breath-recovery-dialog" hidden class="check-icon recovery-icon" data-check="unconfirmed" aria-label="Status prüfen" title="Status prüfen"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="./assets/icons/checks.svg#alert"/></svg></button>
-        </div>
+        <div id="preview-status" role="status" data-measure></div>
       </div>
-      <footer class="actions"><button id="preview-continue" type="button" disabled><span data-measure>Zur Auswahl</span></button></footer>
+      <footer class="actions calibration-actions">
+        <button id="preview-calibrate" type="button" disabled><span data-measure>Start Calibration</span></button>
+        <button id="preview-continue" type="button" aria-describedby="preview-status" hidden disabled><span data-measure>Accept Calibration</span></button>
+        <button id="preview-restart" type="button" hidden disabled><span data-measure>Restart Calibration</span></button>
+        <button id="preview-controller" type="button" hidden disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 11a5 5 0 1 1 8 4l-4 6a2 2 0 0 1-3-2l2-5a4 4 0 0 1-3-3Z"/><path d="M14 9h.01M16 11h.01M9.3 12.4a6 6 0 1 1 8.8-6.5"/></svg>
+          <span data-measure>Switch to Controller based Breath Measure</span>
+        </button>
+      </footer>
     </section>
     <section class="screen" id="daten" aria-labelledby="data-title" hidden>
       <h1 id="data-title" tabindex="-1" data-measure>Frühere Browser-Aufnahmen</h1>

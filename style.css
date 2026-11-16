@@ -43,7 +43,7 @@ main { display: grid; grid-template-rows: minmax(0, 1fr); min-width: 0; min-heig
 .pairing > p { grid-column: 1 / -1; }
 #quest-pairing-code { font: 700 1.6rem/1.2 monospace; letter-spacing: .12em; }
 #quest-clock { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
-.fields, .action-grid, .actions, .menu-dialog > .screen-body {
+.fields, .actions, .menu-dialog > .screen-body {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--gap);
@@ -73,7 +73,7 @@ button > [data-measure], .actions a > [data-measure], #quest-export-download > [
 button:hover:enabled:not([aria-disabled="true"]) { background: #202020; }
 button:is(:disabled, [aria-disabled="true"]) { color: #979797; border-color: #444; cursor: default; }
 :is(button, a, input, select):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-:is(#quest-participant, #quest-find, #quest-play, #patient-next, #preview-continue, #quest-pairing-confirm):enabled:not([aria-disabled="true"]) { background: var(--blue); border-color: #4f98c0; }
+:is(#quest-participant, #quest-find, #quest-play, #patient-next, #preview-calibrate, #preview-continue, #quest-pairing-confirm):enabled:not([aria-disabled="true"]) { background: var(--blue); border-color: #4f98c0; }
 #corner-actions {
   width: min(100%, 640px);
   justify-self: center;
@@ -172,18 +172,19 @@ input, select, output {
 #preview-circle, #preview-actual-circle { grid-area: 1 / 1; width: 100%; aspect-ratio: 1; border: 2px solid #69b4e0; border-radius: 50%; background: #061923; transform: scale(.46); }
 #preview-actual-circle { width: calc(100% - 4px); border: 3px dashed #efc570; background: transparent; }
 #preview-actual-circle[data-stale] { opacity: .45; }
-#preview-actual, #preview-input { display: flex; flex-wrap: wrap; gap: .25em; }
-#preview-progress-group { display: grid; grid-template-columns: 1fr 1fr; gap: 3px var(--gap); }
+#preview-progress-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 3px var(--gap); }
 .preview-progress-track { position: relative; grid-column: 1 / -1; grid-row: 2; height: 10px; border: 1px solid var(--border); border-radius: 3px; overflow: hidden; }
 #preview-progress { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; }
 #preview-progress-fill { position: absolute; inset: 0; background: #efc570; transform: scaleX(0); transform-origin: left; }
+.calibration-actions { min-height: 44px; }
+#preview-controller { grid-column: 1 / -1; grid-template-columns: auto minmax(0, 1fr); gap: var(--gap); }
+#preview-controller svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 #data-files { margin: 0; padding: 0; list-style: none; }
 @media (max-width: 500px) {
   #quest-drive-form, #scenario-fields, #simulation-dialog .fields { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-height: 460px) and (min-width: 600px) {
-  .preview-body { grid-template-columns: 1fr 1fr; align-content: space-between; }
-  .preview-body > .action-grid { align-self: center; grid-column: 2; grid-row: 1 / 3; }
-  #preview-progress-group { grid-column: 1; }
+  .calibration-actions:has(#preview-controller:not([hidden])) { grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, 1.5fr); }
+  .calibration-actions #preview-controller { grid-column: auto; }
 }
 [data-short-viewport] .simulation-label { display: none; }

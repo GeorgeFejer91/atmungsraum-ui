@@ -1,7 +1,7 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
-import { createMockQuest } from './mock-quest.js?v=2';
+import { createMockQuest } from './mock-quest.js?v=3';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
-import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=2';
+import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=3';
 import { showBluetooth } from './connectivity.js';
 
 const byId = id => document.getElementById(id);
@@ -35,7 +35,33 @@ export function mountPlayground() {
     return;
   }
 
-  const quest = createMockQuest();
+  const preview = byId('breathing-preview');
+  const startCalibration = byId('preview-calibrate');
+  let audio, lastCue;
+  for (const button of [startCalibration, byId('preview-restart')]) {
+    button.addEventListener('click', () => {
+      if (!globalThis.AudioContext) return;
+      // Unlock sound with the operator's gesture. Simulated Quest status cues each phase.
+      audio ??= new AudioContext();
+      if (audio.state === 'suspended') void audio.resume().catch(() => {});
+    });
+  }
+  const quest = createMockQuest((phase, generation) => {
+    const cue = `${generation}/${phase}`;
+    if (audio?.state !== 'running' || preview.hidden || !startCalibration.hidden || document.hidden || cue === lastCue) return;
+    lastCue = cue;
+    const tone = audio.createOscillator();
+    const volume = audio.createGain();
+    const now = audio.currentTime;
+    tone.frequency.value = [523, 440, 330, 440][phase % 4];
+    volume.gain.setValueAtTime(0, now);
+    volume.gain.linearRampToValueAtTime(0.06, now + 0.04);
+    volume.gain.linearRampToValueAtTime(0, now + 0.28);
+    tone.connect(volume).connect(audio.destination);
+    tone.onended = () => { tone.disconnect(); volume.disconnect(); };
+    tone.start(now);
+    tone.stop(now + 0.28);
+  });
   async function checkBluetooth() {
     if (document.hidden) return;
     const result = await quest.services.rediscoverQuest();

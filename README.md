@@ -4,13 +4,16 @@
 
 The playground opens with the Quest connected, this smartphone in control, and
 both Polar H10 streams ready. Enter and confirm a test participant ID to open
-breathing setup. Choose an input and verify the preview, then select a condition
-and scenario. Start, pause, resume, and end the run using the app's controls.
+breathing setup. **Start Calibration** runs the box breathing cue and shows the
+calibration circles. Verify the particle response with the participant, then
+accept or restart. After two Polar attempts the operator can also switch to a VR
+controller and check its response. Accepting opens condition and scenario
+selection. Start, pause, resume, and end the run using the app's controls.
 Saved runs offer a synthetic CSV download.
 
 Open **Simulation** to try Quest pairing, disconnect the Polar, drop its ECG
-signal, exercise recovery or an older APK state, accelerate the clock, or return
-to the connected starting state.
+signal, exercise a failed calibration, audio recovery or an older APK state,
+accelerate the run clock, or return to the connected starting state.
 
 Each step and popup fits on one screen. The Bluetooth, WLAN bridge, Quest app,
 and Polar H10 icons are white during checks, green on confirmation, and red
@@ -32,7 +35,9 @@ It has 30 minutes of seeded data at 256 Hz with a nominal heart rate of 70 bpm.
 The browser verifies the SHA-256 in [the manifest](assets/ecg/mock-ecg.json)
 and replays it on the existing ECG view at a simulated 130 Hz. Voltage units
 are display-scaled and synthetic. The respiratory state and VR radius are
-separate deterministic fixtures. [NeuroKit2 ECG simulation](https://neuropsychology.github.io/NeuroKit/functions/ecg.html#neurokit2.ecg_simulate)
+separate deterministic fixtures. The playground plays brief tones at the
+simulated phase changes. A connected Quest owns its own stimulus audio.
+[NeuroKit2 ECG simulation](https://neuropsychology.github.io/NeuroKit/functions/ecg.html#neurokit2.ecg_simulate)
 
 ## Edit and check
 
@@ -43,8 +48,8 @@ separate deterministic fixtures. [NeuroKit2 ECG simulation](https://neuropsychol
   Quest, and Drive services into the original controller. `mock-quest.js`,
   `mock-protocol.js`, `mock-recordings.js`, and `mock-drive.js` own the responses.
   `vendor/atmungsraum/` contains the original controller and clients. Its
-  integration changes are limited to injected services, session storage,
-  shared renderer paths, and the audit recording cache.
+  integration changes cover injected services, session storage, calibration
+  presentation, shared renderer paths, and the audit recording cache.
 - Serve the folder with `python -m http.server 8000`. Run `pnpm test` for
   deterministic data checks and `python tools/check-ui.py` for the Chrome and
   Playwright browser checks. The latter accepts `--url` for deployed checks.
