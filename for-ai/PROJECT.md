@@ -2,11 +2,38 @@
 
 ## Purpose
 
-Provide a stand-alone smartphone UI playground for Atmungsraum, with a stable
-synthetic ECG feed and the original operator flow after the Quest and Polar H10
-are connected. Start with smartphone control and both Polar streams ready. A
-confirmed participant ID opens breathing setup, which leads to scenario selection
-and the normal run controls. The Simulation menu provides alternate states.
+Provide a stand-alone smartphone PWA playground for the Atmungsraum operator
+flow, from connecting the Quest through running a VR scenario. The playground
+uses a synthetic ECG feed and simulated devices, with alternate states in the
+Simulation menu.
+
+## Target PWA flow
+
+1. **Headset connection.** Start on a dedicated page that establishes the PWA's
+   Bluetooth and Wi-Fi connections to the Quest. Once both connections are
+   confirmed, display the participant's live ECG on the page and enable **Weiter**.
+2. **Teilnehmer-ID.** Enter or select and confirm the participant ID on its own
+   page. The confirmed ID determines how the run's recordings are named.
+3. **ACC breathing calibration.** Calibrate accelerometer-based breathing input on
+   a dedicated page. Enable **Weiter** when calibration succeeds.
+4. **Round selection.** Choose **Haupt-Runde** or **Probe-Runde** on a dedicated
+   page.
+5. **VR scenarios.** Show the scenario pages for the chosen round.
+
+The current build starts in the simulated connected state and opens the
+participant form as a dialog. Its fixture exports use a fixed demo identity.
+
+### Open flow decisions
+
+- Decide whether the connection page also waits for live Polar H10 data before
+  enabling **Weiter**. Define how operators retry pairing or calibration and
+  where they resume if a connection drops later.
+- Map VR conditions A/B, instructions, practice durations, and Box-Atmung to
+  the two round branches. Decide which breathing-input alternatives to expose
+  alongside the ACC calibration flow.
+- Define where Start, Pause, Resume, and End belong in the scenario pages. Decide
+  what operators see after saving a run, how recordings are named across repeat
+  runs, and how to start another run or switch participants.
 
 ## Active checklist
 
@@ -25,6 +52,8 @@ and the normal run controls. The Simulation menu provides alternate states.
   text and text spacing overrides.
   The browser flow also preserves keyboard focus during a reduced-height
   viewport test.
+- [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
+  connection page and verify the **Weiter** gate in connected and failed states.
 
 ## Smartphone GUI design rules
 
