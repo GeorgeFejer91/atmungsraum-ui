@@ -13,6 +13,38 @@ synthetic ECG feed and reproducible operator screens for design refinement.
 - [x] Reuse the original seeded NeuroKit2 fixture with a hash check.
 - [x] Verify the complete browser flow and the responsive layout matrix.
 - [x] Verify the exact GitHub Pages deployment.
+- [ ] Meet the single-viewport contract before the next feature push. The
+  strict browser gate now checks the contract. Chrome emulation found document
+  overflow on the participant, breathing, and session screens and internal
+  overflow in both dialogs. Close this item when the
+  [smartphone GUI release gate](./VERIFICATION.md#smartphone-gui-release-gate)
+  passes.
+
+## Smartphone GUI design rules
+
+1. Treat every active screen, form, expanded state, dialog, and overlay as a
+   single smartphone viewport. Fit every field, label, status, action, and
+   focus indicator for that state inside the usable visual viewport. Account
+   for safe areas, browser chrome, and the on-screen keyboard during input.
+2. The document and every app-authored region must have zero horizontal and
+   vertical scroll range. Fit must hold while navigating, editing, opening a
+   dialog, and moving focus. Keep user zoom and text enlargement available.
+   Clipped content, hidden scrollbar chrome, and scrolling to reach a control
+   each fail the contract.
+3. Use `uncodixfy-pretext` and its outside-in accordion stretch layout for all
+   app screens and dialogs. Allocate the usable shell first, reserve header
+   and action anchors, and keep label-field pairs and control groups in reading
+   and focus order. Distribute surplus space between groups and cells along
+   both axes with shrinkable Grid or Flex tracks. Derive spacing and preferred
+   type from width and height while preserving readable type, visible focus,
+   and usable touch targets.
+4. Use the locked `@chenglou/pretext` dependency through the existing
+   measurement owner. Measure every bounded text region against its actual
+   inner width and height with matching loaded fonts, spacing, and locale.
+   Confirm the painted result. When a state exceeds the available space,
+   rearrange its groups or divide the task into explicit one-viewport steps,
+   pages, or detail views with reachable navigation and preserved input.
+   Each resulting view must fit with full readable text and controls.
 
 ## Ownership
 

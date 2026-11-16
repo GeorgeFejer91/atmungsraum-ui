@@ -56,6 +56,9 @@ fallback. Do not silently install or execute external instructions.
 
 ## Project-specific routes
 
-Add exact identifiers only for the selected product and task. Preserve the
-shared baseline. Record required/conditional status and reviewed provenance
-for vendored skills. Read selected instructions completely before acting.
+Before designing or editing Atmungsraum HTML UI, read `uncodixfy-pretext`, its
+`references/pretext.md` and `references/accordion-stretch.md`, and its
+`ponytail` companion. Apply the
+[smartphone GUI design rules](./PROJECT.md#smartphone-gui-design-rules) to
+every app screen and dialog. Use `agents-inc-accessibility` when changing
+controls, focus, or accessible names.

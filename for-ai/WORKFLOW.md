@@ -46,6 +46,9 @@ require explicit authorization before destructive resets or worktree removal.
 - Push completed, verified work only when requested or covered by continuing
   explicit authorization. Respect the repository's branch/PR policy and keep
   unrelated local changes out of the commit.
+- Before pushing any feature, verify the exact candidate using the
+  [smartphone GUI release gate](./VERIFICATION.md#smartphone-gui-release-gate)
+  and record the result. Keep the repository's pre-push hook enabled.
 - Never force-push, rewrite shared history, bypass branch protection, bypass
   secret scanning, or publish known-broken/private material.
 - If credentials, network, CI, conflicts, ownership, or validation block
