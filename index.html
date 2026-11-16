@@ -14,12 +14,12 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/app-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./style.css?v=scenario-progress">
+  <link rel="stylesheet" href="./style.css?v=header-actions">
   <script type="module" src="./pwa-install.js?v=2"></script>
-  <script type="module" src="./app.js?v=scenario-progress"></script>
+  <script type="module" src="./app.js?v=header-actions"></script>
 </head>
 <body>
-  <header id="corner-actions" aria-label="Geräte und Menü">
+  <header id="corner-actions" aria-label="Geräte und Aktionen">
     <button id="check-bluetooth" class="check-icon" type="button" data-check="checking" disabled
       data-dialog="bluetooth-dialog" aria-haspopup="dialog" aria-controls="bluetooth-dialog" aria-label="Bluetooth: wird geprüft" title="Bluetooth: wird geprüft">
       <svg viewBox="0 0 24 24" aria-hidden="true"><use href="./assets/icons/checks.svg#bluetooth"/></svg>
@@ -41,11 +41,17 @@
       <span class="check-symbol" aria-hidden="true"></span>
     </button>
     <button id="recenter-vr" type="button" hidden aria-label="VR zentrieren" aria-disabled="true" aria-describedby="recenter-vr-note" title="VR zentrieren">
-    <img src="./assets/icons/recenter-vr.svg" width="108" height="108" alt="" aria-hidden="true">
-    <span id="recenter-vr-note" class="sr-only">Verbinde dich mit einer Quest im Fernmodus, um die VR-Szene zu zentrieren.</span>
-  </button>
-    <button id="tools-open" type="button" data-dialog="tools-dialog" aria-haspopup="dialog" aria-controls="tools-dialog" aria-label="Menü" title="Menü">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      <img src="./assets/icons/recenter-vr.svg" width="108" height="108" alt="" aria-hidden="true">
+      <span id="recenter-vr-note" class="sr-only">Verbinde dich mit einer Quest im Fernmodus, um die VR-Szene zu zentrieren.</span>
+    </button>
+    <button id="tools-open" class="header-action" type="button" data-dialog="tools-dialog" aria-haspopup="dialog" aria-controls="tools-dialog" aria-label="Einstellungen" title="Einstellungen">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M10.3 2.7h3.4l.5 2.3 1.2.5 2-1.3 2.4 2.4-1.3 2 .5 1.2 2.3.5v3.4l-2.3.5-.5 1.2 1.3 2-2.4 2.4-2-1.3-1.2.5-.5 2.3h-3.4l-.5-2.3-1.2-.5-2 1.3-2.4-2.4 1.3-2-.5-1.2-2.3-.5v-3.4l2.3-.5.5-1.2 1.3 2 2.4-2.4 2 1.3 1.2-.5z"/>
+        <circle cx="12" cy="12" r="3.3"/>
+      </svg>
+    </button>
+    <button id="recordings-open" class="header-action" type="button" data-dialog="recordings-dialog" aria-haspopup="dialog" aria-controls="recordings-dialog" aria-label="Aufnahmen" title="Aufnahmen" disabled>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m-4-4 4 4 4-4M4 15v5h16v-5"/></svg>
     </button>
   </header>
   <dialog id="bluetooth-dialog" aria-labelledby="bluetooth-dialog-title">
@@ -113,11 +119,10 @@
     <footer class="actions"><button type="button" data-close><span data-measure>Schließen</span></button></footer>
   </dialog>
   <dialog id="tools-dialog" aria-labelledby="tools-dialog-title" class="menu-dialog">
-    <header><h2 id="tools-dialog-title" data-measure>Menü</h2></header>
+    <header><h2 id="tools-dialog-title" data-measure>Einstellungen</h2></header>
     <div class="screen-body">
       <button id="simulation-open" type="button" data-dialog="simulation-dialog" aria-haspopup="dialog" aria-controls="simulation-dialog"><span data-measure>Simulation</span></button>
       <button id="install-app" type="button" aria-label="App installieren" aria-haspopup="dialog" aria-controls="install-dialog"><span data-measure>Installieren</span></button>
-      <button id="recordings-open" type="button" data-dialog="recordings-dialog" aria-haspopup="dialog" aria-controls="recordings-dialog"><span data-measure>Aufnahmen</span></button>
       <button id="drive-open" type="button" data-dialog="quest-drive" aria-haspopup="dialog" aria-controls="quest-drive"><span data-measure>Google Drive</span></button>
       <button id="control-open" type="button" data-dialog="control-dialog" aria-haspopup="dialog" aria-controls="control-dialog"><span data-measure>Steuerung</span></button>
       <button id="ecg-open" type="button" data-dialog="ecg-dialog" aria-haspopup="dialog" aria-controls="ecg-dialog"><span data-measure>Live-EKG</span></button>

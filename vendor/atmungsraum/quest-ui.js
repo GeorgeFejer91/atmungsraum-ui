@@ -8,7 +8,7 @@ import { LiveBreathDisplay } from '../../live-breath-display.js?v=5';
 import { LiveEcgDisplay } from '../../live-ecg-display.js?v=1';
 import { KioskControl } from './kiosk-control.js?v=2';
 import { ApkRelease } from './quest-release.js?v=2';
-import { showConnectionChecks } from '../../connectivity.js';
+import { showConnectionChecks } from '../../connectivity.js?v=header-actions';
 
 const byId = (id) => document.getElementById(id);
 const focusInViewport = element => element.focus({ preventScroll: true });

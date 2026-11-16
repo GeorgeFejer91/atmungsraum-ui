@@ -68,6 +68,10 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
 - [x] Show progress for timed scenarios. Chrome verified pause and resume,
   the untimed exploration display, automatic completion of the practice run,
   and layout fit across the seven viewport cases of the strict audit.
+- [x] Put **Einstellungen** and **Aufnahmen** in the top bar as grey SVG icon
+  boxes. Keep the full top row visible on every screen and above dialogs.
+  Chrome verified direct access, keyboard activation, return focus, and
+  single-row fit in the strict seven-viewport audit.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 
@@ -102,6 +106,8 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
 5. Show background checks as neutral black-and-white SVG icons while checking,
    green on confirmation and red on failure. Each red icon opens one diagnostic
    popup. Keep diagnostic feedback inside that popup and omit generic page arrows.
+   Keep the checks and grey action boxes aligned in one top row. Open dialogs
+   below that row so the connection indicators stay visible.
 
 ## Ownership
 

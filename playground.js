@@ -1,8 +1,8 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
 import { createMockQuest } from './mock-quest.js?v=scenario-progress';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
-import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=scenario-progress';
-import { showBluetooth } from './connectivity.js';
+import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=header-actions';
+import { showBluetooth, showOfflineChecks } from './connectivity.js?v=header-actions';
 
 const byId = id => document.getElementById(id);
 
@@ -27,7 +27,7 @@ export function mountPlayground() {
   if (view.value === 'history') {
     byId('quest').hidden = true;
     byId('daten').hidden = false;
-    for (const icon of document.querySelectorAll('#corner-actions .check-icon')) icon.hidden = true;
+    showOfflineChecks();
     for (const id of ['control-open', 'recordings-open', 'ecg-open', 'drive-open']) byId(id).disabled = true;
     byId('data-status').textContent = 'Keine früheren Browser-Aufnahmen vorhanden.';
     byId('simulation-state').disabled = byId('simulation-speed').disabled = true;

@@ -33,8 +33,11 @@ def measure_views(page, flow, url, style_text):
 
     expect(page.locator("#quest-participant")).to_be_visible()
     capture("startup")
+    page.locator("#recordings-open").click()
+    capture("recordings on startup")
+    close(page)
     page.locator("#tools-open").click()
-    capture("menu")
+    capture("settings")
     page.locator("#install-app").click()
     expect(page.locator("#install-dialog")).to_be_visible()
     capture("install dialog")
@@ -110,7 +113,7 @@ def measure_views(page, flow, url, style_text):
     capture("session")
     page.locator("#quest-finish").click()
     page.locator("#preview-continue").click()
-    menu(page, "#recordings-open")
+    page.locator("#recordings-open").click()
     expect(page.locator("#quest-archives")).to_be_visible()
     capture("archive")
     page.goto(url + "?pairing=1")
@@ -121,6 +124,7 @@ def measure_views(page, flow, url, style_text):
     page.goto(url + "#daten")
     style_text()
     expect(page.locator("#data-title")).to_be_visible()
+    expect(page.locator('#corner-actions .check-icon[data-check="unconfirmed"]:visible')).to_have_count(4)
     capture("history")
     return samples
 

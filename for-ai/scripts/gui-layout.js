@@ -29,7 +29,17 @@ async () => {
     if (main) reportOverflow(main);
   }
   const panelBox = activePanel.getBoundingClientRect();
-  const chrome = dialog ? [] : [...document.querySelectorAll('#corner-actions, #corner-actions button, #recenter-vr')];
+  const toolbar = document.querySelector('#corner-actions');
+  const toolbarBox = toolbar.getBoundingClientRect();
+  const widgets = [...toolbar.querySelectorAll('button')].filter(visible);
+  const firstWidget = widgets[0]?.getBoundingClientRect();
+  if (widgets.length < 6 || widgets.some(widget => {
+    const box = widget.getBoundingClientRect();
+    return !inside(box, toolbarBox) || box.width < 24 || Math.abs(box.width - box.height) > 1
+      || Math.abs(box.top - firstWidget.top) > 1 || Math.abs(box.width - firstWidget.width) > 1;
+  })) problems.push('Top widgets must fit in one aligned row of equal squares');
+  if (toolbarBox.bottom > panelBox.top + 1) problems.push('Active panel covers the top widget row');
+  const chrome = [toolbar, ...widgets];
   const elements = [activePanel, ...activePanel.querySelectorAll('*'), ...chrome]
     .filter(element => element instanceof HTMLElement && visible(element)
       && !element.closest('.sr-only, [aria-hidden="true"]'));

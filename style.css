@@ -11,6 +11,13 @@ html {
   --usable-height: 100dvh;
   --gap: clamp(6px, min(2vw, calc(var(--usable-height) / 65)), 16px);
   --inset: clamp(8px, min(3vw, calc(var(--usable-height) / 45)), 24px);
+  --edge-top: max(var(--inset), env(safe-area-inset-top));
+  --edge-right: max(var(--inset), env(safe-area-inset-right));
+  --edge-bottom: max(var(--inset), env(safe-area-inset-bottom));
+  --edge-left: max(var(--inset), env(safe-area-inset-left));
+  --toolbar-width: min(640px, calc(100vw - var(--edge-left) - var(--edge-right)));
+  --widget-gap: clamp(4px, 1.4vw, 8px);
+  --widget-size: min(44px, calc((var(--toolbar-width) - 6 * var(--widget-gap) - 1px) / 7));
 }
 body {
   margin: 0;
@@ -18,10 +25,7 @@ body {
   grid-template-rows: auto minmax(0, 1fr);
   block-size: var(--usable-height);
   gap: var(--gap);
-  padding: max(var(--inset), env(safe-area-inset-top))
-    max(var(--inset), env(safe-area-inset-right))
-    max(var(--inset), env(safe-area-inset-bottom))
-    max(var(--inset), env(safe-area-inset-left));
+  padding: var(--edge-top) var(--edge-right) var(--edge-bottom) var(--edge-left);
   font: 1rem/1.5 Arial, sans-serif;
 }
 [hidden] { display: none !important; }
@@ -130,18 +134,30 @@ button:is(:disabled, [aria-disabled="true"]) { color: #979797; border-color: #44
 :is(button, a, input, select):focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 :is(#quest-participant, #quest-find, #quest-play, #patient-next, #preview-calibrate, #preview-continue, #quest-pairing-confirm):enabled:not([aria-disabled="true"]) { background: var(--blue); border-color: #4f98c0; }
 #corner-actions {
+  position: sticky;
+  top: var(--edge-top);
+  z-index: 1;
   width: min(100%, 640px);
   justify-self: center;
   display: flex;
   align-items: center;
-  gap: clamp(4px, 1.4vw, 8px);
+  gap: var(--widget-gap);
   min-width: 0;
 }
-#corner-actions button { position: relative; flex: 0 0 44px; width: 44px; height: 44px; padding: 7px; }
+#corner-actions button {
+  position: relative;
+  flex: 0 0 var(--widget-size);
+  width: var(--widget-size);
+  height: var(--widget-size);
+  min-height: 0;
+  padding: 4px;
+}
 #corner-actions svg, .check-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
-#recenter-vr { margin-inline-start: auto; }
-#recenter-vr img { width: 100%; height: 100%; object-fit: contain; }
-#tools-open { margin-inline-start: auto; }
+#recenter-vr img { width: min(100%, 28px); height: auto; }
+#corner-actions .header-action { color: #ddd; background: #292929; }
+#corner-actions .header-action:disabled { color: #979797; }
+#corner-actions .header-action:hover:enabled { background: #393939; }
+#recenter-vr, #tools-open { margin-inline-start: auto; }
 #recenter-vr:not([hidden]) + #tools-open { margin-inline-start: 0; }
 .check-icon { position: relative; }
 .recovery-icon { width: 44px !important; justify-self: center; }
@@ -150,12 +166,15 @@ button:is(:disabled, [aria-disabled="true"]) { color: #979797; border-color: #44
 .check-icon[data-check="unconfirmed"] { color: #ff8f8f; border-color: #854747; }
 .check-symbol { position: absolute; inset-inline-end: 3px; inset-block-end: 1px; font: 700 12px/1 Arial, sans-serif; background: var(--surface); }
 dialog {
-  --dialog-height: min(740px, calc(var(--usable-height) - 2 * var(--inset)));
+  --dialog-start: calc(var(--edge-top) + var(--widget-size) + var(--gap));
+  --dialog-space: calc(var(--usable-height) - var(--dialog-start) - var(--edge-bottom));
+  --dialog-height: 740px;
+  --dialog-size: min(var(--dialog-height), var(--dialog-space));
   position: fixed;
-  inset: calc((var(--usable-height) - var(--dialog-height)) / 2) 0 auto;
+  inset: calc(var(--dialog-start) + (var(--dialog-space) - var(--dialog-size)) / 2) var(--edge-right) auto var(--edge-left);
   margin: 0 auto;
-  width: min(640px, calc(100% - 2 * var(--inset)));
-  height: var(--dialog-height);
+  width: var(--toolbar-width);
+  height: var(--dialog-size);
   max-height: none;
   padding: var(--inset);
   border: 1px solid var(--border);
@@ -164,7 +183,8 @@ dialog {
   color: inherit;
   overflow: visible;
 }
-dialog::backdrop { background: #000b; }
+dialog::backdrop { background: transparent; }
+body:has(dialog[open]) main { opacity: .3; }
 dialog .screen-body { overflow-wrap: anywhere; }
 :is(#bluetooth-dialog, #bridge-dialog) {
   --dialog-height: min(calc(var(--usable-height) - 2 * var(--inset)), calc(5rem + 30dvh));

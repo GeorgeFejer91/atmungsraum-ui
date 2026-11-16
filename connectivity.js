@@ -24,6 +24,16 @@ export function showBluetooth(confirmed) {
     : 'Quest über Bluetooth nicht gefunden. Prüfe Bluetooth und den Fernmodus.');
 }
 
+export function showOfflineChecks() {
+  for (const [name, feedback] of [['bluetooth', 'bluetooth-feedback'], ['bridge', 'bridge-feedback'],
+    ['apk', 'apk-update-status'], ['polar', 'polar-feedback']]) {
+    check(name, false);
+    report(feedback, 'In dieser Ansicht besteht keine Verbindung zur Quest.');
+  }
+  report('apk-required', 'Benötigter APK-Stand nicht geprüft.');
+  byId('apk-identity').hidden = true;
+}
+
 export function showConnectionChecks({ status, version, polar, kiosk, checking, bridgeFailure }) {
   const bridge = checking && !status ? null : status?.wifi_snapshot === 1;
   check('bridge', bridge);
