@@ -22,24 +22,64 @@ class QuietHandler(SimpleHTTPRequestHandler):
         pass
 
 
-def measure_views(page, flow):
+def measure_views(page, flow, url, style_text):
+    expect = flow["expect"]
+    expect(page.locator("#quest-participant")).to_be_visible()
     samples = {"startup": page.evaluate(LAYOUT_AUDIT)}
     page.locator("#install-app").click()
-    flow["expect"](page.locator("#install-dialog")).to_be_visible()
+    expect(page.locator("#install-dialog")).to_be_visible()
     samples["install dialog"] = page.evaluate(LAYOUT_AUDIT)
     page.keyboard.press("Escape")
     flow["simulation"](page)
     samples["simulation dialog"] = page.evaluate(LAYOUT_AUDIT)
-    states = page.locator("#simulation-screen option").evaluate_all("options => options.map(option => option.value)")
     page.keyboard.press("Escape")
-    for state in states:
-        flow["shortcut"](page, state)
-        samples[state] = page.evaluate(LAYOUT_AUDIT)
-    for state, fixture in (("breathing", "setup-error"), ("breathing", "old-apk"), ("archive", "kiosk-error")):
-        flow["shortcut"](page, state)
-        flow["set_fixture"](page, fixture)
-        samples[fixture] = page.evaluate(LAYOUT_AUDIT)
-        flow["set_fixture"](page, "normal")
+    participant = page.locator("#quest-participant > summary")
+    participant.click()
+    samples["participant"] = page.evaluate(LAYOUT_AUDIT)
+    participant.click()
+    drive = page.locator("#quest-drive > summary")
+    drive.click()
+    samples["drive form"] = page.evaluate(LAYOUT_AUDIT)
+    drive.click()
+    flow["set_fixture"](page, "kiosk-error")
+    settings = page.locator("#quest-settings > summary")
+    settings.click()
+    expect(page.locator("#kiosk-retry")).to_be_visible()
+    samples["kiosk-error"] = page.evaluate(LAYOUT_AUDIT)
+    page.locator("#kiosk-retry").click()
+    settings.click()
+    flow["set_fixture"](page, "signal-loss")
+    expect(page.locator("#quest-polar-connect")).to_be_enabled()
+    samples["polar signal loss"] = page.evaluate(LAYOUT_AUDIT)
+    flow["set_fixture"](page, "normal")
+    flow["enter_participant"](page)
+    samples["breathing"] = page.evaluate(LAYOUT_AUDIT)
+    flow["set_fixture"](page, "old-apk")
+    expect(page.locator("#preview-modes-compatibility")).to_be_visible()
+    samples["old-apk"] = page.evaluate(LAYOUT_AUDIT)
+    flow["set_fixture"](page, "setup-error")
+    expect(page.locator("#preview-detail")).to_contain_text("läuft nicht weiter")
+    samples["setup-error"] = page.evaluate(LAYOUT_AUDIT)
+    flow["set_fixture"](page, "normal")
+    page.locator("#preview-polar-fixed").click()
+    page.locator("#preview-continue").click()
+    samples["scenario selection"] = page.evaluate(LAYOUT_AUDIT)
+    page.locator("#quest-play").click()
+    expect(page.locator("#quest-finish")).to_be_visible()
+    samples["session"] = page.evaluate(LAYOUT_AUDIT)
+    page.locator("#quest-finish").click()
+    page.locator("#preview-continue").click()
+    expect(page.locator("#quest-archives")).to_be_visible()
+    samples["archive"] = page.evaluate(LAYOUT_AUDIT)
+    page.goto(url + "?pairing=1")
+    style_text()
+    page.locator("#quest-find").click()
+    expect(page.locator("#quest-pairing-code")).to_be_visible()
+    samples["pairing"] = page.evaluate(LAYOUT_AUDIT)
+    page.goto(url + "#daten")
+    style_text()
+    expect(page.locator("#data-title")).to_be_visible()
+    samples["history"] = page.evaluate(LAYOUT_AUDIT)
     return samples
 
 
@@ -72,12 +112,14 @@ def verify(directory):
             for viewport in VIEWPORTS:
                 width, height, font, spacing = viewport
                 page, errors = flow["start_page"](browser, url, width, height)
-                if font != 100:
-                    page.evaluate("size => document.documentElement.style.fontSize = size + '%'", font)
-                if spacing:
-                    page.add_style_tag(content="*{line-height:1.5!important;letter-spacing:.12em!important;"
-                                              "word-spacing:.16em!important}p{margin-bottom:2em!important}")
-                samples = measure_views(page, flow)
+                def style_text():
+                    if font != 100:
+                        page.evaluate("size => document.documentElement.style.fontSize = size + '%'", font)
+                    if spacing:
+                        page.add_style_tag(content="*{line-height:1.5!important;letter-spacing:.12em!important;"
+                                                  "word-spacing:.16em!important}p{margin-bottom:2em!important}")
+                style_text()
+                samples = measure_views(page, flow, url, style_text)
                 matrix[viewport] = samples
                 context = f"{width}x{height}, {font}% text, custom spacing {spacing}"
                 for name, result in samples.items():

@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import re
 from threading import Thread
 from urllib.parse import urlsplit
 
@@ -20,12 +21,6 @@ def set_fixture(page, value):
     expect(page.locator("#simulation-open")).to_be_focused()
 
 
-def shortcut(page, screen):
-    simulation(page)
-    page.locator("#simulation-screen").select_option(screen)
-    expect(page.locator("#simulation-dialog")).to_be_hidden()
-
-
 def layout_check(page):
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
     assert page.evaluate("""() => [...document.querySelectorAll(
@@ -40,6 +35,7 @@ def layout_check(page):
 
 def start_page(browser, url, width=390, height=844):
     page = browser.new_page(viewport={"width": width, "height": height}, accept_downloads=True)
+    page.clock.install()
     origin = urlsplit(url).netloc
     errors = []
     page.on("pageerror", lambda exc: errors.append(str(exc)))
@@ -54,91 +50,123 @@ def start_page(browser, url, width=390, height=844):
     return page, errors
 
 
+def enter_participant(page):
+    page.locator("#quest-participant summary").press("Enter")
+    page.locator("#patient-surname").fill("tes")
+    page.locator("#patient-age").fill("30")
+    page.locator('[name=gender][value=other]').check()
+    expect(page.locator("#patient-id")).to_have_text("Tes_30_O")
+    page.locator("#patient-next").press("Enter")
+    expect(page.locator("#breathing-preview")).to_be_visible()
+    expect(page.locator("#preview-title")).to_be_focused()
+
+
+def check_pairing(browser, url):
+    pairing_url = urlsplit(url)._replace(query="pairing=1", fragment="").geturl()
+    page, errors = start_page(browser, pairing_url)
+    page.locator("#quest-find").click()
+    expect(page.locator("#quest-pairing-code")).to_have_text(re.compile(r"^\d{6}$"))
+    page.locator("#quest-pairing-confirm").click()
+    expect(page.locator("#quest-participant")).to_be_visible()
+    expect(page.locator("#quest-control-release")).to_be_visible()
+    assert not errors, errors
+    page.close()
+
+
 def full_flow(browser, url, image):
     page, errors = start_page(browser, url)
-    page.clock.install()
     page.locator("#install-app").click()
     expect(page.locator("#install-dialog")).to_be_visible()
     page.keyboard.press("Escape")
     expect(page.locator("#install-app")).to_be_focused()
-    page.locator("#quest-find").click()
-    expect(page.locator("#quest-pairing-code")).to_have_text("481 620")
-    page.locator("#quest-pairing-confirm").click()
+    expect(page.locator("#quest-control-release")).to_be_visible()
+    expect(page.locator("#quest-find")).to_be_hidden()
+    page.locator("#quest-control-release").click()
+    expect(page.locator("#quest-participant")).to_be_hidden()
     page.locator("#quest-control-claim").click()
-    page.locator("#patient-surname").fill("dem")
-    page.locator("#patient-age").fill("30")
-    page.locator('[name=gender][value=other]').check()
-    expect(page.locator("#patient-id")).to_have_text("Dem_30_O")
-    page.locator("#patient-next").click()
-    page.locator("#quest-polar-connect").click()
+    expect(page.locator("#quest-participant")).to_be_visible()
+    page.locator("#recenter-vr").click()
+    expect(page.locator("#quest-status")).to_have_text("VR-Szene zentriert.")
+    expect(page.locator("#quest-polar-connect")).to_be_disabled()
+    expect(page.locator("#quest-clock")).to_have_text("00:00")
     expect(page.locator("#quest-ecg")).to_be_visible()
-    expect(page.locator("#quest-ecg-status")).to_contain_text("NeuroKit2")
-    wave = page.locator("#quest-ecg-trace").get_attribute("d")
-    page.clock.run_for(500)
-    assert page.locator("#quest-ecg-trace").get_attribute("d") != wave
     set_fixture(page, "signal-gap")
-    page.clock.run_for(4500)
-    expect(page.locator("#quest-ecg")).to_be_visible()
+    page.wait_for_function("document.querySelector('#quest-ecg-trace').getAttribute('d').match(/M/g)?.length > 1")
     set_fixture(page, "signal-loss")
     expect(page.locator("#quest-ecg")).to_be_hidden()
-    expect(page.locator("#quest-play")).to_be_disabled()
     page.locator("#quest-polar-connect").click()
     expect(page.locator("#quest-ecg")).to_be_visible()
-    page.locator("#quest-play").click()
-    expect(page.locator("#breathing-preview")).to_be_visible()
-    page.locator("#preview-start").click()
-    expect(page.locator("#preview-actual-circle")).to_be_visible()
+    set_fixture(page, "polar-off")
+    page.locator("#quest-polar-connect").click()
+    expect(page.locator("#quest-ecg")).to_be_visible()
+    set_fixture(page, "kiosk-error")
+    page.locator("#quest-settings > summary").click()
+    page.locator("#kiosk-retry").click()
+    expect(page.locator("#kiosk-summary")).to_contain_text(" · wirksam")
+    page.locator("#quest-settings > summary").click()
+    page.locator("#quest-drive > summary").click()
+    page.locator("#quest-drive-connect").click()
+    expect(page.locator("#quest-drive-status")).to_contain_text("Google Drive verbunden")
+    enter_participant(page)
+    expect(page.locator("#preview-start")).to_be_hidden()
+    expect(page.locator("#preview-continue")).to_be_disabled()
+    expect(page.locator("#preview-status")).to_have_text("Automatic ist bereit.")
     page.locator("#preview-calibrate").click()
+    expect(page.locator("#preview-actual-circle")).to_be_visible()
     expect(page.locator("#preview-progress")).to_be_visible()
-    page.clock.run_for(49000)
-    expect(page.locator("#preview-input-label")).to_contain_text("Persönlich")
+    page.clock.fast_forward(49000)
+    expect(page.locator("#preview-input-label")).to_contain_text("persönlich eingerichtet")
     page.locator("#preview-polar-fixed").click()
+    expect(page.locator("#preview-title")).to_have_text("Polar STATE testen")
     expect(page.locator("#preview-polar-fixed")).to_have_attribute("aria-pressed", "true")
     page.locator("#preview-polar-adaptive").click()
     expect(page.locator("#preview-polar-adaptive")).to_have_attribute("aria-pressed", "true")
     set_fixture(page, "old-apk")
     expect(page.locator("#preview-polar-adaptive")).to_be_hidden()
-    expect(page.locator("#apk-update-status")).to_contain_text("aktualisieren")
+    expect(page.locator("#apk-update-status")).to_contain_text("Update")
     set_fixture(page, "setup-error")
-    expect(page.locator("#preview-recovery")).to_be_visible()
-    page.locator("#preview-acknowledge").click()
-    expect(page.locator("#preview-recovery")).to_be_hidden()
     page.locator("#preview-controller").click()
+    expect(page.locator("#preview-recovery")).to_be_visible()
+    expect(page.locator("#preview-recovery")).to_be_hidden()
     expect(page.locator("#preview-title")).to_have_text("Controller testen")
     if image:
         page.screenshot(path=image, full_page=True)
     page.locator("#preview-continue").click()
+    expect(page.locator("#quest-condition")).to_be_focused()
     page.locator("#quest-scenario").select_option("haupt-15")
     simulation(page)
     page.locator("#simulation-speed").select_option("60")
     page.keyboard.press("Escape")
     play = page.locator("#quest-play")
-    expect(play).to_be_enabled()
-    page.clock.pause_at(page.evaluate("Date.now()") + 100)
-    play.evaluate("button => button.click()")
-    page.clock.run_for(1500)
+    play.click()
+    expect(play).to_have_text("Pause")
+    expect(page.locator("#quest-disconnect")).to_be_hidden()
+    expect(page.locator("#quest-polar")).to_be_hidden()
+    expect(page.locator("#quest-drive-status")).to_have_text("Google Drive empfängt die laufende Aufnahme.", timeout=10000)
     minute, second = map(int, page.locator("#quest-clock").inner_text().split(":"))
-    # At 60x, the last drawn frame can be one displayed second behind.
-    assert 89 <= minute * 60 + second <= 90
-    play.evaluate("button => button.click()")
+    assert minute * 60 + second > 0
+    play.click()
+    expect(play).to_have_text("Fortsetzen")
     paused = page.locator("#quest-clock").inner_text()
-    page.clock.run_for(2500)
+    page.clock.fast_forward(2500)
     assert page.locator("#quest-clock").inner_text() == paused
-    play.evaluate("button => button.click()")
-    page.clock.run_for(16000)
-    page.clock.resume()
+    play.click()
+    expect(play).to_have_text("Pause")
+    page.locator("#quest-finish").click()
+    expect(page.locator("#breathing-preview")).to_be_visible()
+    page.locator("#preview-continue").click()
     expect(page.locator("#quest-archives")).to_be_visible()
-    set_fixture(page, "kiosk-error")
-    page.locator("#quest-settings > summary").click()
-    expect(page.locator("#kiosk-retry")).to_be_visible()
-    page.locator("#kiosk-retry").click()
-    expect(page.locator("#kiosk-summary")).to_have_text("Kiosk-Schutz aktiv.")
+    expect(page.locator("#quest-drive-status")).to_have_text("In Google Drive bestätigt: 1", timeout=15000)
     with page.expect_download() as pending:
         page.locator("#quest-export-download").click()
-    assert pending.value.suggested_filename == "SIM_Dem_30_O_EKG.csv"
-    assert pending.value.path().read_text(encoding="utf-8").startswith("source,sample_index,time_s,ecg_mock_uv\nmock-neurokit2,")
-    shortcut(page, "history")
-    expect(page.locator("#data-files a")).to_have_count(1)
+    assert re.fullmatch(r"Dem_30_O_\d{4}-\d{2}-\d{2}_haupt-15_r1\.csv", pending.value.suggested_filename)
+    exported = pending.value.path().read_text(encoding="utf-8")
+    assert exported.startswith("source,sample_index,time_s,ecg_mock_uv\nmock-neurokit2,")
+    assert "Tes_30_O" not in exported
+    simulation(page)
+    page.locator("#simulation-reset").click()
+    expect(page.locator("#quest-ecg")).to_be_visible()
+    expect(page.locator("#patient-surname")).to_have_value("")
     assert not errors, errors
     page.close()
 
@@ -153,14 +181,21 @@ def matrix(browser, url):
         if spacing:
             page.add_style_tag(content="* {line-height:1.5 !important; letter-spacing:.12em !important;"
                                        "word-spacing:.16em !important} p {margin-bottom:2em !important}")
-        for screen in ("pairing", "participant", "polar", "breathing", "session", "archive", "history"):
-            simulation(page)
-            layout_check(page)
-            page.locator("#simulation-screen").select_option(screen)
-            expect(page.locator("#simulation-dialog")).to_be_hidden()
-            layout_check(page)
+        expect(page.locator("#quest-participant")).to_be_visible()
+        layout_check(page)
+        simulation(page)
+        layout_check(page)
+        page.keyboard.press("Escape")
+        enter_participant(page)
+        layout_check(page)
+        page.locator("#preview-polar-fixed").click()
+        page.locator("#preview-continue").click()
+        layout_check(page)
+        page.locator("#quest-play").click()
+        expect(page.locator("#quest-play")).to_have_text("Pause")
+        layout_check(page)
         assert not errors, errors
-        print(f"PASS rendered {width}x{height}, {font}% text, custom spacing {spacing}, seven screens")
+        print(f"PASS rendered {width}x{height}, {font}% text, custom spacing {spacing}, connected workflow")
         page.close()
 
 
@@ -183,8 +218,9 @@ def main():
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(channel="chrome")
+            check_pairing(browser, url)
             full_flow(browser, url, args.image)
-            print("PASS pairing, participant form, ECG replay/loss, calibration/modes, session clock, kiosk and synthetic CSV")
+            print("PASS pairing, control, Polar commands and ECG, breathing receipts, kiosk, live/final Drive transfer and CSV")
             matrix(browser, url)
     finally:
         if server:

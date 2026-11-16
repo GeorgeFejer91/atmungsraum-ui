@@ -3,7 +3,10 @@
 ## Purpose
 
 Provide a stand-alone smartphone UI playground for Atmungsraum, with a stable
-synthetic ECG feed and reproducible operator screens for design refinement.
+synthetic ECG feed and the original operator flow after the Quest and Polar H10
+are connected. Start with smartphone control and both Polar streams ready. A
+confirmed participant ID opens breathing setup, which leads to scenario selection
+and the normal run controls. The Simulation menu provides alternate states.
 
 ## Active checklist
 
@@ -13,10 +16,13 @@ synthetic ECG feed and reproducible operator screens for design refinement.
 - [x] Reuse the original seeded NeuroKit2 fixture with a hash check.
 - [x] Verify the complete browser flow and the responsive layout matrix.
 - [x] Verify the exact GitHub Pages deployment.
+- [x] Verify the pinned original controller against the simulated Quest and Drive
+  protocols in local Chrome, including pairing, command receipts, ECG, live and
+  finalized recording transfers, and the synthetic CSV download.
 - [ ] Meet the single-viewport contract before the next feature push. The
-  strict browser gate now checks the contract. Chrome emulation found document
-  overflow on the participant, breathing, and session screens and internal
-  overflow in both dialogs. Close this item when the
+  protocol-backed Chrome audit reported 105 findings across the viewport
+  matrix, including vertical overflow in the connected view, participant form,
+  breathing preview, session, and install dialog at 320 × 640. Close this item when the
   [smartphone GUI release gate](./VERIFICATION.md#smartphone-gui-release-gate)
   passes.
 
@@ -49,11 +55,12 @@ synthetic ECG feed and reproducible operator screens for design refinement.
 ## Ownership
 
 Static HTML/CSS and JavaScript at the repository root. `app.js` owns
-Pretext measurement. `playground.js` owns in-page mock UI state.
-`simulation.js` maps the fixture to display inputs and synthetic CSV.
-There is no native, browser-to-device or cloud transport. Keep fixture inputs
-ephemeral and synthetic. See [README](../README.md) for transferring design
-changes to the original app.
+Pretext measurement. `playground.js` wires the original operator controller and
+clients in `vendor/atmungsraum/` to the in-page Quest, recording, and Drive
+backends. The transport exercises the clients' signed and encrypted message
+validation. Discovery returns synthetic metadata. Recordings use a fixed demo
+identity and a dedicated browser cache. Requests stay on the page's origin.
+See [README](../README.md) for transferring design changes to the original app.
 
 Upstream visuals are pinned to `3f8d7c8befa3c13d1e8f574e82082468ba5128f7`.
 The ECG binary and generator come from the original Atmungsraum work at
@@ -67,6 +74,7 @@ All three Node tests passed locally. The Chrome flow and seven-screen layout
 matrix passed locally and on Pages at 320px, 200% text, narrow landscape,
 custom text spacing, and desktop size. Checks used synthetic state and files.
 
-The first playground milestone is complete. For the next design refinement,
-use the baseline tag and port only the intended presentation changes.
-Physical-phone installation and production hardware acceptance are separate.
+The Pages evidence above applies to the baseline release. The local browser
+flow and responsive smoke checks pass for the protocol-backed audit fixture.
+Port only intended presentation changes to the original app. Physical-phone
+installation and production hardware acceptance remain separate.

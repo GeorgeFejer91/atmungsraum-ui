@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="connect-src 'self'">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#000000">
   <meta name="mobile-web-app-capable" content="yes">
@@ -15,7 +16,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="./style.css?v=1">
   <script type="module" src="./pwa-install.js?v=1"></script>
-  <script type="module" src="./app.js?v=1"></script>
+  <script type="module" src="./app.js?v=3"></script>
 </head>
 <body>
   <button id="recenter-vr" type="button" hidden aria-label="VR zentrieren" aria-disabled="true" aria-describedby="recenter-vr-note" title="VR zentrieren">
@@ -46,15 +47,10 @@
       <button id="simulation-close" type="button" autofocus><span data-measure>Schließen</span></button>
     </header>
     <p id="simulation-note" data-measure>Alle Geräte, Aufnahmen und Signale sind simuliert. Bitte nur Testdaten eingeben.</p>
-    <label><span data-measure>Ansicht</span>
+    <label><span data-measure>Einstieg</span>
       <select id="simulation-screen">
-        <option value="connection">Verbindung</option>
-        <option value="pairing">Kopplungscode</option>
-        <option value="participant">Teilnehmer-ID</option>
-        <option value="polar">Polar H10 und EKG</option>
-        <option value="breathing">Atmung einrichten</option>
-        <option value="session">Versuch</option>
-        <option value="archive">Aufnahmen</option>
+        <option value="connected">Quest und Polar verbunden</option>
+        <option value="pairing">Quest-Kopplung</option>
         <option value="history">Frühere Browser-Aufnahmen</option>
       </select>
     </label>
@@ -63,6 +59,7 @@
         <option value="normal">Normal</option>
         <option value="signal-gap">EKG mit Paketlücken</option>
         <option value="signal-loss">EKG-Signal verloren</option>
+        <option value="polar-off">Polar H10 getrennt</option>
         <option value="setup-error">Atemschleife unterbrochen</option>
         <option value="old-apk">Quest-App veraltet</option>
         <option value="kiosk-error">Kiosk-Dienst unterbrochen</option>
@@ -141,10 +138,10 @@
           </form>
         </details>
         <label id="quest-condition-label" hidden>
-          <span id="quest-condition-name" data-measure>Szenario</span>
+          <span id="quest-condition-name" data-measure>VR-Bedingung</span>
           <select id="quest-condition">
-            <option value="condition-a">Szenario A</option>
-            <option value="condition-b">Szenario B</option>
+            <option value="condition-a">Bedingung A</option>
+            <option value="condition-b">Bedingung B</option>
           </select>
         </label>
         <label id="quest-scenario-label" hidden>

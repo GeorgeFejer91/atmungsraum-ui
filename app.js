@@ -1,4 +1,4 @@
-import { mountPlayground } from './playground.js';
+import { mountPlayground } from './playground.js?v=3';
 
 const byId = id => document.getElementById(id);
 const root = document.documentElement;

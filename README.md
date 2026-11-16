@@ -2,15 +2,23 @@
 
 [Open the live smartphone UI](https://georgefejer91.github.io/atmungsraum-ui/).
 
-The playground preserves the German Atmungsraum screens for independent design
-work. Walk through smartphone pairing, participant entry, Polar setup, breathing
-preview, a practice or main run, and synthetic CSV download. Open **Simulation**
-to jump to a screen, introduce ECG gaps or signal loss, exercise setup/kiosk
-recovery or an older APK state, accelerate the session clock, or reset.
+The playground opens with the Quest connected, this smartphone in control, and
+both Polar H10 streams ready. Enter and confirm a test participant ID to open
+breathing setup. Choose an input and verify the preview, then select a condition
+and scenario. Start, pause, resume, and end the run using the app's controls.
+Saved runs offer a synthetic CSV download.
 
-Use fictional inputs. Participant and connection fields exist solely to exercise
-the UI and live in the current page. All downloads use a fixed synthetic identity.
-The app runs from static files and requests only its own assets.
+Open **Simulation** to try Quest pairing, disconnect the Polar, drop its ECG
+signal, exercise recovery or an older APK state, accelerate the clock, or return
+to the connected starting state.
+
+Use fictional inputs. The entered participant ID stays in the audit tab and
+exports use a fixed synthetic identity. The original UI controller and clients
+exchange signed or encrypted Quest messages with an in-page backend. Recording
+lists, manifests, and checksummed chunks use the original synchronization code
+and a dedicated browser cache. The Drive form uses a preset audit account for
+simulated authorization and resumable uploads. The mock device and Drive
+service start fresh when the page reloads. Browser requests stay on the page's origin.
 
 ## ECG fixture
 
@@ -24,9 +32,12 @@ separate deterministic fixtures. [NeuroKit2 ECG simulation](https://neuropsychol
 ## Edit and check
 
 - Edit `index.html` and `style.css` for shared screen structure and styling.
-- Edit `app.js` for Pretext measurement. `playground.js` and `simulation.js`
-  own mock behavior. `live-ecg-display.js` and `live-breath-display.js` are the
-  shared presentation modules.
+- `app.js` owns Pretext measurement. `playground.js` injects the mock discovery,
+  Quest, and Drive services into the original controller. `mock-quest.js`,
+  `mock-protocol.js`, `mock-recordings.js`, and `mock-drive.js` own the responses.
+  `vendor/atmungsraum/` contains the original controller and clients. Its
+  integration changes are limited to injected services, session storage,
+  shared renderer paths, and the audit recording cache.
 - Serve the folder with `python -m http.server 8000`. Run `pnpm test` for
   deterministic data checks and `python tools/check-ui.py` for the Chrome and
   Playwright browser checks. The latter accepts `--url` for deployed checks.
