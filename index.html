@@ -2,7 +2,7 @@
 <html lang="de" data-mode="quest">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta http-equiv="Content-Security-Policy" content="connect-src 'self'">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#000000">
@@ -14,9 +14,9 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/app-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./style.css?v=1">
+  <link rel="stylesheet" href="./style.css?v=2">
   <script type="module" src="./pwa-install.js?v=1"></script>
-  <script type="module" src="./app.js?v=3"></script>
+  <script type="module" src="./app.js?v=4"></script>
 </head>
 <body>
   <button id="recenter-vr" type="button" hidden aria-label="VR zentrieren" aria-disabled="true" aria-describedby="recenter-vr-note" title="VR zentrieren">
@@ -33,19 +33,23 @@
   <dialog id="install-dialog" aria-labelledby="install-title" aria-describedby="install-intro">
     <header class="files-header">
       <h2 id="install-title" data-measure>App installieren</h2>
-      <button id="close-install" type="button" autofocus><span data-measure>Schließen</span></button>
     </header>
+    <div class="screen-body">
     <p id="install-intro" data-measure>Füge die Atmungsraum-UI-Simulation zum Startbildschirm hinzu. Das Viscereality-Symbol öffnet die App. Eine Internetverbindung wird benötigt.</p>
     <p data-measure>Am PC mit Brave findest du „Atmungsraum UI installieren“ unter „Speichern und teilen“. Unter brave://apps kannst du eine bereits installierte App öffnen.</p>
     <p data-measure>Android / Chrome: Öffne das Browser-Menü und wähle „Installieren“ oder „Zum Startbildschirm hinzufügen“.</p>
     <p data-measure>iPhone / Safari: Tippe auf „Teilen“ und „Zum Home-Bildschirm“. Aktiviere „Als Web-App öffnen“, falls angeboten.</p>
     <p data-measure>Fehlt die Option? Öffne diese Seite direkt in Chrome oder Safari statt im eingebetteten Browser einer anderen App.</p>
+    </div>
+    <footer class="actions">
+      <button id="close-install" type="button" autofocus><span data-measure>Schließen</span></button>
+    </footer>
   </dialog>
   <dialog id="simulation-dialog" aria-labelledby="simulation-title" aria-describedby="simulation-note">
     <header class="files-header">
       <h2 id="simulation-title" data-measure>UI-Simulation</h2>
-      <button id="simulation-close" type="button" autofocus><span data-measure>Schließen</span></button>
     </header>
+    <div class="screen-body">
     <p id="simulation-note" data-measure>Alle Geräte, Aufnahmen und Signale sind simuliert. Bitte nur Testdaten eingeben.</p>
     <label><span data-measure>Einstieg</span>
       <select id="simulation-screen">
@@ -72,7 +76,11 @@
         <option value="60">60×</option>
       </select>
     </label>
-    <button id="simulation-reset" type="button"><span data-measure>Simulation zurücksetzen</span></button>
+    </div>
+    <footer class="actions">
+      <button id="simulation-reset" type="button"><span data-measure>Simulation zurücksetzen</span></button>
+      <button id="simulation-close" type="button" autofocus><span data-measure>Schließen</span></button>
+    </footer>
   </dialog>
   <main>
     <section class="screen" id="quest" aria-labelledby="quest-title">
@@ -83,8 +91,8 @@
       </header>
       <div class="screen-body quest-body">
         <p id="quest-status" role="status" tabindex="-1" data-measure>Quest-Steuerung wird geladen …</p>
-        <div id="quest-version-host">
-          <aside id="quest-version" class="version-panel" aria-labelledby="apk-update-status" hidden>
+        <div id="quest-version-host" data-page-split>
+          <aside id="quest-version" class="version-panel" aria-label="APK-Version" data-page-split hidden>
             <p id="apk-update-status" role="status" data-measure>APK-Versionsprüfung läuft …</p>
             <p id="apk-installed" data-measure>Installiert: nicht verlässlich gemeldet.</p>
             <p id="apk-required" data-measure>Benötigter APK-Stand wird geprüft.</p>
@@ -94,24 +102,24 @@
             </details>
           </aside>
         </div>
-        <div id="quest-pairing" class="screen-body" hidden>
+        <div id="quest-pairing" class="screen-body" data-page-split hidden>
           <p data-measure>Vergleiche diesen Code mit dem Code im Headset.</p>
           <p id="quest-pairing-code" aria-label="Verbindungscode" data-measure></p>
           <p data-measure>Diese Verbindung erlaubt dem Smartphone die Quest-Steuerung und den Zugriff auf Aufnahmen.</p>
           <button id="quest-pairing-confirm" type="button"><span data-measure>Code stimmt überein</span></button>
           <button id="quest-pairing-cancel" type="button"><span data-measure>Abbrechen</span></button>
         </div>
-        <div id="quest-control-host" hidden><div id="quest-control-access" class="screen-body" hidden>
+        <div id="quest-control-host" data-page-split hidden><div id="quest-control-access" class="screen-body" data-page-split hidden>
           <p id="quest-control-status" role="status" data-measure></p>
           <button id="quest-control-claim" type="button" hidden><span data-measure>Steuerung übernehmen</span></button>
           <button id="quest-control-release" type="button" hidden><span data-measure>Steuerung freigeben</span></button>
         </div></div>
         <button id="quest-find" type="button" aria-describedby="quest-status" hidden><span data-measure>Mit Bluetooth verbinden</span></button>
-        <p id="quest-clock" aria-label="Aktive Zeit auf der Quest" data-measure hidden>00:00</p>
+        <p id="quest-clock" aria-label="Aktive Zeit auf der Quest" data-measure data-measure-sample="88:88" data-live-value hidden>00:00</p>
         <details id="quest-participant" hidden>
           <summary><span id="quest-participant-label" data-measure>Teilnehmer-ID eingeben</span></summary>
-          <form id="patient-form" class="screen-body patient-body" autocomplete="off">
-            <fieldset class="patient-fields" id="patient-fields" aria-labelledby="quest-participant-label" disabled>
+          <form id="patient-form" class="screen-body patient-body" data-page-split autocomplete="off">
+            <fieldset class="patient-fields" id="patient-fields" aria-label="Teilnehmer-ID" data-page-split disabled>
               <label class="patient-field" for="patient-surname">
                 <span data-measure>Nachname (erste 3 Buchstaben)</span>
                 <input id="patient-surname" name="surnamePrefix" type="text" minlength="3" maxlength="3" pattern="\p{L}{3}" required spellcheck="false" autocapitalize="off">
@@ -155,13 +163,13 @@
             <option value="box-20">Box-Atmung · 20 Min.</option>
           </select>
         </label>
-        <div id="quest-polar" hidden>
+        <div id="quest-polar" data-page-split hidden>
           <p id="quest-polar-status" role="status" data-measure></p>
           <button id="quest-polar-connect" type="button" aria-describedby="quest-polar-status">
             <span data-measure>Polar H10 verbinden</span>
           </button>
         </div>
-        <div id="quest-data" hidden>
+        <div id="quest-data" data-page-split hidden>
           <p id="quest-ecg-status" role="status" data-measure></p>
           <svg id="quest-ecg" viewBox="0 0 400 92" role="img" aria-label="Simuliertes EKG für Polar H10" hidden>
             <path d="M0 46H400" class="quest-ecg-axis" />
@@ -177,7 +185,7 @@
           <a id="quest-export-download" hidden><span data-measure>Aufnahme herunterladen</span></a>
           <details id="quest-drive" hidden>
             <summary><span data-measure>Google Drive</span></summary>
-            <form id="quest-drive-form" autocomplete="off">
+            <form id="quest-drive-form" data-page-split autocomplete="off">
               <label><span data-measure>Google OAuth-Client-ID</span><input id="quest-drive-client" required spellcheck="false"></label>
               <label><span data-measure>Google-Konto für die Ablage</span><input id="quest-drive-account" type="email" required spellcheck="false"></label>
               <button id="quest-drive-connect" type="submit" disabled><span data-measure>Google Drive verbinden</span></button>
@@ -185,13 +193,13 @@
           </details>
           <p id="quest-drive-status" role="status" data-measure hidden></p>
         </div>
-        <aside id="quest-recovery" class="recovery-panel" aria-labelledby="quest-recovery-title" hidden>
+        <aside id="quest-recovery" class="recovery-panel" aria-label="Quest-Status" data-page-split hidden>
           <h2 id="quest-recovery-title" data-measure></h2>
           <p id="quest-recovery-detail" role="status" data-measure></p>
           <button id="quest-acknowledge" type="button" hidden><span data-measure>Bestätigung erneut abfragen</span></button>
         </aside>
         <button id="quest-disconnect" type="button" hidden><span data-measure>Verbindung trennen</span></button>
-        <div id="quest-settings-host">
+        <div id="quest-settings-host" data-page-split>
           <details id="quest-settings">
             <summary><span data-measure>Quest-Einstellungen · Kiosk</span></summary>
             <p id="kiosk-summary" role="status" data-measure></p>
@@ -219,9 +227,9 @@
         <p class="simulation-label" data-measure>UI-Simulation</p>
       </header>
       <div class="screen-body preview-body">
-        <figure class="preview-figure">
+        <figure class="preview-figure" data-page-split>
           <div class="preview-radius" aria-hidden="true"><div id="preview-circle"></div><div id="preview-actual-circle" hidden></div></div>
-          <div class="preview-legend">
+          <div class="preview-legend" data-page-split>
             <p class="desired-key" data-measure>SOLL · blauer, durchgezogener Atemtakt</p>
             <p class="actual-key" data-measure>IST · goldener, gestrichelter VR-Radius</p>
           </div>
@@ -238,15 +246,15 @@
             <progress id="preview-progress" max="2" value="0" aria-describedby="preview-progress-text"></progress>
             <span id="preview-progress-fill" aria-hidden="true"></span>
           </div>
-          <p id="preview-progress-text" aria-live="off" data-measure>0 von 2 Atemzyklen</p>
+          <p id="preview-progress-text" aria-live="off" data-measure data-measure-sample="1,99 von 2 Atemzyklen" data-live-value>0 von 2 Atemzyklen</p>
         </div>
         <p id="preview-detail" role="status" data-measure>Warte auf den aktuellen Atemstatus der Quest.</p>
-        <aside id="preview-recovery" class="recovery-panel" aria-labelledby="preview-recovery-title" hidden>
+        <aside id="preview-recovery" class="recovery-panel" aria-label="Status der Atemeinrichtung" data-page-split hidden>
           <h2 id="preview-recovery-title" data-measure></h2>
           <p id="preview-recovery-detail" role="status" data-measure></p>
           <button id="preview-acknowledge" type="button" hidden><span data-measure>Bestätigung erneut abfragen</span></button>
         </aside>
-        <div class="preview-controls">
+        <div class="preview-controls" data-page-split>
           <button id="preview-start" type="button" hidden disabled><span data-measure>Atemschleife starten</span></button>
           <button id="preview-calibrate" type="button" disabled><span data-measure>Atmung persönlich einrichten</span><small data-measure>Zwei Atemzyklen mit dieser Person</small></button>
           <button id="preview-personal-return" type="button" hidden disabled><span data-measure>Zur persönlichen Einrichtung wechseln</span><small data-measure>Polar tilt mit dieser Person einrichten</small></button>
@@ -254,19 +262,19 @@
           <button id="preview-polar-adaptive" type="button" hidden disabled aria-pressed="false"><span data-measure>Polar tilt STATE · dynamische Achse</span><small data-measure>Vortrainiert · Achse passt sich laufend an</small></button>
           <button id="preview-controller" type="button" disabled><span data-measure>Controller State</span><small data-measure>Feste Ausrichtung</small></button>
         </div>
-        <div id="preview-settings-host"></div>
-        <div id="preview-version-host"></div>
+        <div id="preview-settings-host" data-page-split></div>
+        <div id="preview-version-host" data-page-split></div>
+        <div id="preview-control-host" data-page-split hidden></div>
       </div>
       <footer class="actions">
         <button id="preview-continue" type="button" disabled><span data-measure>Weiter zur Auswahl</span></button>
-        <div id="preview-control-host" hidden></div>
       </footer>
     </section>
     <section class="screen" id="daten" aria-labelledby="data-title" hidden>
       <h1 id="data-title" tabindex="-1" data-measure>Frühere Browser-Aufnahmen</h1>
       <div class="screen-body data-body">
         <p id="data-status" role="status" data-measure>Aufnahmen werden geladen …</p>
-        <ul id="data-files"></ul>
+        <ul id="data-files" data-page-split></ul>
       </div>
       <footer class="actions"><a class="back" href="./"><span data-measure>← Zurück</span></a></footer>
     </section>

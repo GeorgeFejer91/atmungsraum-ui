@@ -43,9 +43,10 @@ require explicit authorization before destructive resets or worktree removal.
 - Inspect status and diff before and after edits.
 - Stage explicit paths; never absorb unrelated work to make the tree clean.
 - Keep one coherent concern per commit and checkpoint meaningful milestones.
-- Push completed, verified work only when requested or covered by continuing
-  explicit authorization. Respect the repository's branch/PR policy and keep
-  unrelated local changes out of the commit.
+- The user has authorized ongoing publication of completed, verified changes
+  for this repository. Push them to the GitHub Pages source branch, verify
+  the exact deployed revision and browser flow, and open the live page.
+  Respect the branch policy and keep unrelated local changes out of the commit.
 - Before pushing any feature, verify the exact candidate using the
   [smartphone GUI release gate](./VERIFICATION.md#smartphone-gui-release-gate)
   and record the result. Keep the repository's pre-push hook enabled.

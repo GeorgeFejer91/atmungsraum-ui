@@ -12,6 +12,10 @@ Open **Simulation** to try Quest pairing, disconnect the Polar, drop its ECG
 signal, exercise recovery or an older APK state, accelerate the clock, or return
 to the connected starting state.
 
+Use the arrows below a screen or dialog to reach groups that need a separate
+page at the current window size. An open form keeps its input when you turn a
+page or resize the window.
+
 Use fictional inputs. The entered participant ID stays in the audit tab and
 exports use a fixed synthetic identity. The original UI controller and clients
 exchange signed or encrypted Quest messages with an in-page backend. Recording
@@ -32,7 +36,8 @@ separate deterministic fixtures. [NeuroKit2 ECG simulation](https://neuropsychol
 ## Edit and check
 
 - Edit `index.html` and `style.css` for shared screen structure and styling.
-- `app.js` owns Pretext measurement. `playground.js` injects the mock discovery,
+- `app.js` owns Pretext measurement and `viewport.js` fits each page to the
+  usable viewport. `playground.js` injects the mock discovery,
   Quest, and Drive services into the original controller. `mock-quest.js`,
   `mock-protocol.js`, `mock-recordings.js`, and `mock-drive.js` own the responses.
   `vendor/atmungsraum/` contains the original controller and clients. Its

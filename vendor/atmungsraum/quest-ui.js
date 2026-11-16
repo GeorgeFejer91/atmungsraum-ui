@@ -8,6 +8,7 @@ import { LiveBreathDisplay } from '../../live-breath-display.js?v=4';
 import { LiveEcgDisplay } from '../../live-ecg-display.js?v=1';
 import { KioskControl } from './kiosk-control.js?v=2';
 import { ApkRelease } from './quest-release.js?v=1';
+import { focusInViewport } from '../../viewport.js';
 
 const byId = (id) => document.getElementById(id);
 const text = (element, value) => { if (element.textContent !== value) element.textContent = value; };
@@ -118,7 +119,6 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   let ecgGeneration = null;
   let ecgSensor = '';
   let breathTimer;
-  let versionGeometryKey = '';
   const rehearsal = new QuestRehearsal({ storage, onChange: paint });
 
   function paint({ status, busy, pending, unknown, message } = rehearsal.state) {
@@ -166,7 +166,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
       ? 'Ergebnis unklar. Prüfe die Quest. Es wird kein Befehl wiederholt.'
       : connecting ? 'Quest wird verbunden …' : commandWaiting ? 'Warte auf Bestätigung der Quest …'
         : waitingForControl ? hint : message || hint));
-    if (status && connectingFocus) statusText.focus({ preventScroll: true });
+    if (status && connectingFocus) focusInViewport(statusText);
     clock.hidden = !status;
     if (status) {
       const seconds = Math.floor(status.ms / 1000);
@@ -208,15 +208,6 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     const versionHost = byId(showPreview ? 'preview-version-host' : 'quest-version-host');
     if (versionPanel.parentElement !== versionHost) versionHost.append(versionPanel);
     const version = apkRelease.update(rehearsal.gateway, status);
-    const versionKey = status ? `${rehearsal.gateway?.owner.device}/${rehearsal.gateway?.owner.epoch}/${rehearsal.gateway?.owner.native_epoch}/${versionPanel.clientWidth}/${getComputedStyle(versionPanel).fontSize}/${byId('apk-identity').open}` : '';
-    if (versionGeometryKey !== versionKey) {
-      versionPanel.style.minBlockSize = '';
-      versionGeometryKey = versionKey;
-    } else if (!versionPanel.hidden) {
-      // A read-only policy refresh must not temporarily shrink the document
-      // and clamp an operator's scroll position near its bottom.
-      versionPanel.style.minBlockSize = `${Math.max(versionPanel.getBoundingClientRect().height, parseFloat(versionPanel.style.minBlockSize) || 0)}px`;
-    }
     versionPanel.hidden = !status;
     versionPanel.dataset.versionState = version.state;
     text(byId('apk-update-status'), version.message);
@@ -236,7 +227,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     paintBreathingSetup(breath, waiting);
     const showParticipant = requiresParticipant && armedWithParticipant && status.p === 'IDLE' && !active && !waitingForControl;
     if (!showParticipant && !participant.hidden && participant.contains(document.activeElement)) {
-      statusText.focus({ preventScroll: true });
+      focusInViewport(statusText);
     }
     participant.hidden = !showParticipant;
     participantFields.disabled = !showParticipant || waiting || unknown;
@@ -252,11 +243,11 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
       : setup?.c ? 'Fehlende Messsignale starten' : 'Polar H10 verbinden');
     polarConnect.hidden = recoveringStreams || automaticConnection;
     polarConnect.disabled = recoveringStreams || waiting || unknown || !setup?.p || !setup.b || !setup.c && setup.l === 'disabled' || setup.sc || ready;
-    if ((polar.hidden || polarConnect.hidden) && hadPolarFocus) statusText.focus({ preventScroll: true });
+    if ((polar.hidden || polarConnect.hidden) && hadPolarFocus) focusInViewport(statusText);
     play.hidden = !status || idle && !selectionAllowed;
     const available = rehearsal.gateway?.scenarioArm ? rehearsalScenarios(status) : [];
     const showScenario = selectionAllowed && available.length > 0;
-    if (!showScenario && document.activeElement === scenario) statusText.focus({ preventScroll: true });
+    if (!showScenario && document.activeElement === scenario) focusInViewport(statusText);
     scenario.parentElement.hidden = !showScenario;
     scenario.disabled = !showScenario || waiting || unknown;
     if (showScenario) {
@@ -264,7 +255,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
       if (!available.includes(scenario.value)) scenario.value = scenarioOptions.find(option => !option.disabled).value;
     }
     const showCondition = selectionAllowed && status.ecg_preview === 1;
-    if (!showCondition && document.activeElement === condition) statusText.focus({ preventScroll: true });
+    if (!showCondition && document.activeElement === condition) focusInViewport(statusText);
     condition.parentElement.hidden = !showCondition;
     condition.disabled = waiting || unknown;
     text(conditionName, showScenario ? 'VR-Bedingung' : 'Szenario');
@@ -273,7 +264,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     play.disabled = waiting || unknown || !actions.play || actions.play === 'arm' && !selectionAllowed;
     text(play.firstElementChild, status?.p === 'RUNNING' ? 'Pause' : status?.p === 'PAUSED' ? 'Fortsetzen' : 'Starten');
     finish.hidden = !active;
-    if (finish.hidden && hadFinishFocus) statusText.focus({ preventScroll: true });
+    if (finish.hidden && hadFinishFocus) focusInViewport(statusText);
     finish.disabled = waiting || unknown || !actions.finish;
     const recovery = rehearsal.recovery();
     byId('quest-recovery').hidden = !recovery;
@@ -303,12 +294,12 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
       const hadPreviewFocus = preview.contains(document.activeElement);
       preview.hidden = !showPreview;
       questScreen.hidden = showPreview;
-      if (showPreview) previewTitle.focus();
+      if (showPreview) focusInViewport(previewTitle);
       else {
         if (hadPreviewFocus || document.activeElement === document.body) {
-          if (showCondition) condition.focus();
-          else if (showScenario) scenario.focus();
-          else statusText.focus();
+          if (showCondition) focusInViewport(condition);
+          else if (showScenario) focusInViewport(scenario);
+          else focusInViewport(statusText);
         }
       }
     }
@@ -783,8 +774,8 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
         connecting = null;
         paint();
         if (restorePairingFocus && !document.hidden) {
-          if (!rehearsal.state.status) find.focus({ preventScroll: true });
-          else if (preview.hidden) statusText.focus({ preventScroll: true });
+          if (!rehearsal.state.status) focusInViewport(find);
+          else if (preview.hidden) focusInViewport(statusText);
         }
       }
     }
@@ -800,7 +791,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
       pairingConfirm.disabled = false;
       joinMessage = 'Vergleiche den Code und bestätige auf Smartphone und Headset.';
       paint();
-      pairingConfirm.focus({ preventScroll: true });
+      focusInViewport(pairingConfirm);
     });
   }
 
@@ -853,7 +844,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     try {
       participantId = participantIdentity(Object.fromEntries(new FormData(participantForm))).id;
       participant.open = false;
-      participant.querySelector('summary').focus({ preventScroll: true });
+      focusInViewport(participant.querySelector('summary'));
       paint();
     } catch {
       participantId = '';
@@ -875,10 +866,6 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   pairingCancel.addEventListener('click', () => pairingChoice?.attempt.abort());
   controlClaim.addEventListener('click', () => { if (!controlClaim.disabled) void changeControl('claim'); });
   controlRelease.addEventListener('click', () => { if (!controlRelease.disabled) void changeControl('release'); });
-  byId('apk-identity').addEventListener('toggle', () => {
-    byId('quest-version').style.minBlockSize = '';
-    versionGeometryKey = '';
-  });
   byId('kiosk-retry').addEventListener('click', async () => {
     if (userAction || connecting || document.hidden || !kiosk.view?.canRetry) return;
     const attempt = new AbortController(); userAction = attempt;
@@ -933,7 +920,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     autoConnect = false;
     resetPreview();
     detach();
-    find.focus();
+    focusInViewport(find);
   });
   const timer = setInterval(tick, 1000);
   // Renderer samples expire after 500 ms. Only the visible preview needs this

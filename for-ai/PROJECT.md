@@ -19,12 +19,11 @@ and the normal run controls. The Simulation menu provides alternate states.
 - [x] Verify the pinned original controller against the simulated Quest and Drive
   protocols in local Chrome, including pairing, command receipts, ECG, live and
   finalized recording transfers, and the synthetic CSV download.
-- [ ] Meet the single-viewport contract before the next feature push. The
-  protocol-backed Chrome audit reported 105 findings across the viewport
-  matrix, including vertical overflow in the connected view, participant form,
-  breathing preview, session, and install dialog at 320 × 640. Close this item when the
+- [x] Meet the single-viewport contract in the strict Chrome audit. The
   [smartphone GUI release gate](./VERIFICATION.md#smartphone-gui-release-gate)
-  passes.
+  passed seven viewport cases, including 200% text and text spacing overrides.
+  The browser flow also preserves keyboard focus during a reduced-height
+  viewport test.
 
 ## Smartphone GUI design rules
 
@@ -55,7 +54,8 @@ and the normal run controls. The Simulation menu provides alternate states.
 ## Ownership
 
 Static HTML/CSS and JavaScript at the repository root. `app.js` owns
-Pretext measurement. `playground.js` wires the original operator controller and
+Pretext measurement and `viewport.js` paginates content against the usable
+viewport. `playground.js` wires the original operator controller and
 clients in `vendor/atmungsraum/` to the in-page Quest, recording, and Drive
 backends. The transport exercises the clients' signed and encrypted message
 validation. Discovery returns synthetic metadata. Recordings use a fixed demo

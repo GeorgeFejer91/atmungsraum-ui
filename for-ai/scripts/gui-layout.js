@@ -78,5 +78,7 @@ async () => {
   }
   const groups = [...body.children].filter(visible).map(element => element.getBoundingClientRect());
   const gaps = groups.slice(1).reduce((sum, group, index) => sum + Math.max(0, group.top - groups[index].bottom), 0);
-  return { problems, bodyWidth: bodyBox.width, bodyHeight: bodyBox.height, gap: gaps, groups: groups.length };
+  const contents = [...body.querySelectorAll('[data-page-index]')].filter(visible)
+    .map(element => element.id || element.textContent.trim() || describe(element));
+  return { problems, bodyWidth: bodyBox.width, bodyHeight: bodyBox.height, gap: gaps, groups: groups.length, contents };
 }

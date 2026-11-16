@@ -3,6 +3,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from io import BytesIO
 from pathlib import Path
+import re
 from runpy import run_path
 from subprocess import check_output, run
 from sys import stdin
@@ -24,75 +25,103 @@ class QuietHandler(SimpleHTTPRequestHandler):
 
 def measure_views(page, flow, url, style_text):
     expect = flow["expect"]
-    expect(page.locator("#quest-participant")).to_be_visible()
-    samples = {"startup": page.evaluate(LAYOUT_AUDIT)}
+    reveal = flow["reveal"]
+    samples = {}
+
+    def capture(state):
+        panel = page.locator("dialog[open]") if page.locator("dialog[open]").count() else page.locator(".screen:not([hidden])")
+        previous = panel.get_by_role("button", name="Vorherige Seite", exact=True)
+        following = panel.get_by_role("button", name="Nächste Seite", exact=True)
+        expect(panel).to_have_attribute("data-page", re.compile(r"^\d+$"))
+        for _ in range(32):
+            if not previous.count() or not previous.is_enabled():
+                break
+            previous.click()
+        else:
+            raise AssertionError(f"Could not return to the first page for {state}")
+        for index in range(32):
+            name = state if index == 0 else f"{state} · page {index + 1}"
+            samples[name] = page.evaluate(LAYOUT_AUDIT)
+            if not following.count() or not following.is_enabled():
+                return
+            following.click()
+        raise AssertionError(f"Pagination did not finish for {state}")
+
+    reveal(page, "#quest-participant")
+    capture("startup")
     page.locator("#install-app").click()
     expect(page.locator("#install-dialog")).to_be_visible()
-    samples["install dialog"] = page.evaluate(LAYOUT_AUDIT)
+    capture("install dialog")
     page.keyboard.press("Escape")
     flow["simulation"](page)
-    samples["simulation dialog"] = page.evaluate(LAYOUT_AUDIT)
+    capture("simulation dialog")
     page.keyboard.press("Escape")
-    participant = page.locator("#quest-participant > summary")
-    participant.click()
-    samples["participant"] = page.evaluate(LAYOUT_AUDIT)
-    participant.click()
-    drive = page.locator("#quest-drive > summary")
-    drive.click()
-    samples["drive form"] = page.evaluate(LAYOUT_AUDIT)
-    drive.click()
+    reveal(page, "#apk-identity > summary").click()
+    capture("APK identity")
+    reveal(page, "#apk-identity > summary").click()
+    reveal(page, "#quest-participant > summary").click()
+    capture("participant")
+    reveal(page, "#quest-participant > summary").click()
+    reveal(page, "#quest-drive > summary").click()
+    capture("drive form")
+    reveal(page, "#quest-drive > summary").click()
     flow["set_fixture"](page, "kiosk-error")
-    settings = page.locator("#quest-settings > summary")
-    settings.click()
-    expect(page.locator("#kiosk-retry")).to_be_visible()
-    samples["kiosk-error"] = page.evaluate(LAYOUT_AUDIT)
-    page.locator("#kiosk-retry").click()
-    settings.click()
+    reveal(page, "#quest-settings > summary").click()
+    reveal(page, "#kiosk-diagnostics > summary").click()
+    expect(reveal(page, "#kiosk-retry")).to_be_visible()
+    capture("kiosk-error")
+    reveal(page, "#kiosk-retry").click()
+    reveal(page, "#quest-settings > summary").click()
     flow["set_fixture"](page, "signal-loss")
     expect(page.locator("#quest-polar-connect")).to_be_enabled()
-    samples["polar signal loss"] = page.evaluate(LAYOUT_AUDIT)
+    capture("polar signal loss")
     flow["set_fixture"](page, "normal")
+    expect(page.locator("#quest-polar-status")).to_contain_text("Quest empfängt EKG und Beschleunigungsdaten")
     flow["enter_participant"](page)
-    samples["breathing"] = page.evaluate(LAYOUT_AUDIT)
+    capture("breathing")
     flow["set_fixture"](page, "old-apk")
-    expect(page.locator("#preview-modes-compatibility")).to_be_visible()
-    samples["old-apk"] = page.evaluate(LAYOUT_AUDIT)
+    expect(reveal(page, "#preview-modes-compatibility")).to_be_visible()
+    capture("old-apk")
     flow["set_fixture"](page, "setup-error")
     expect(page.locator("#preview-detail")).to_contain_text("läuft nicht weiter")
-    samples["setup-error"] = page.evaluate(LAYOUT_AUDIT)
+    capture("setup-error")
     flow["set_fixture"](page, "normal")
-    page.locator("#preview-polar-fixed").click()
+    reveal(page, "#preview-calibrate").click()
+    expect(reveal(page, "#preview-progress")).to_be_visible()
+    capture("calibration")
+    reveal(page, "#preview-polar-fixed").click()
     page.locator("#preview-continue").click()
-    samples["scenario selection"] = page.evaluate(LAYOUT_AUDIT)
+    capture("scenario selection")
     page.locator("#quest-play").click()
     expect(page.locator("#quest-finish")).to_be_visible()
-    samples["session"] = page.evaluate(LAYOUT_AUDIT)
+    capture("session")
     page.locator("#quest-finish").click()
     page.locator("#preview-continue").click()
-    expect(page.locator("#quest-archives")).to_be_visible()
-    samples["archive"] = page.evaluate(LAYOUT_AUDIT)
+    expect(reveal(page, "#quest-archives")).to_be_visible()
+    capture("archive")
     page.goto(url + "?pairing=1")
     style_text()
     page.locator("#quest-find").click()
-    expect(page.locator("#quest-pairing-code")).to_be_visible()
-    samples["pairing"] = page.evaluate(LAYOUT_AUDIT)
+    expect(reveal(page, "#quest-pairing-code")).to_be_visible()
+    capture("pairing")
     page.goto(url + "#daten")
     style_text()
     expect(page.locator("#data-title")).to_be_visible()
-    samples["history"] = page.evaluate(LAYOUT_AUDIT)
+    capture("history")
     return samples
 
 
 def check_stretch(matrix):
     narrow, short, tall = (matrix[viewport] for viewport in VIEWPORTS[:3])
     failures = []
-    for name, base in short.items():
+    for name in narrow.keys() & short.keys() & tall.keys():
+        base = short[name]
         smaller, expanded = narrow[name], tall[name]
         if any(sample["problems"] for sample in (smaller, base, expanded)):
             continue
         if base["bodyWidth"] <= smaller["bodyWidth"] + 1 or expanded["bodyHeight"] <= base["bodyHeight"] + 1:
             failures.append(f"{name}: stretch body must adapt to added width and height")
-        if base["groups"] > 1 and base["groups"] == expanded["groups"] and expanded["gap"] <= base["gap"] + 1:
+        if base["groups"] > 1 and base["contents"] == expanded["contents"] and expanded["gap"] <= base["gap"] + 1:
             failures.append(f"{name}: distribute added height between the ordered groups")
     return failures
 
@@ -122,6 +151,7 @@ def verify(directory):
                 samples = measure_views(page, flow, url, style_text)
                 matrix[viewport] = samples
                 context = f"{width}x{height}, {font}% text, custom spacing {spacing}"
+                print(f"Checked {context}: {len(samples)} pages", flush=True)
                 for name, result in samples.items():
                     if result["problems"]:
                         violations.append(f"{context}, {name}: " + "; ".join(result["problems"][:4]))
