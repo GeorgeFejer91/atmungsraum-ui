@@ -28,6 +28,7 @@ def measure_views(page, flow, url, style_text):
     samples = {}
 
     def capture(state):
+        expect(page.locator("html")).to_have_attribute("data-measurement", "ready", timeout=10000)
         samples[state] = page.evaluate(LAYOUT_AUDIT)
 
     expect(page.locator("#quest-participant")).to_be_visible()
