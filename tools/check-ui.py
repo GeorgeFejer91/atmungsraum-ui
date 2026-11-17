@@ -155,6 +155,10 @@ def check_review_links(browser, url):
             expect(page.locator("#quest-participant")).to_be_focused()
         if view == "scenarios":
             expect(page.get_by_role("radio")).to_have_count(3)
+            practice = page.get_by_role("group", name="Probe-Runde")
+            expect(practice.get_by_role("radio", name="Geführte Atmung")).to_be_checked()
+            expect(practice.get_by_role("radio", name="Freie Erkundung")).to_be_visible()
+            expect(practice.get_by_role("radio", name="Haupt-Runde")).to_have_count(0)
         if view == "session":
             expect(page.locator("#quest-clock")).to_have_text("00:00 / 15:00")
             expect(page.locator("#quest-play")).to_have_text("Starten")
@@ -371,7 +375,7 @@ def check_playback(browser, url):
     assert page.evaluate("playedCues.length") == last + 2
 
     assert page.goto(urlsplit(url)._replace(query="view=scenarios").geturl()).ok
-    expect(page.get_by_role("radio", name="Probe-Runde")).to_be_checked()
+    expect(page.get_by_role("radio", name="Geführte Atmung")).to_be_checked()
     play.click()
     expect(play).to_have_text("Pause")
     expect(progress).to_have_attribute("max", "345401")
@@ -393,7 +397,7 @@ def check_playback(browser, url):
     assert page.evaluate("playedCues.length") == last + 1
 
     assert page.goto(urlsplit(url)._replace(query="view=scenarios").geturl()).ok
-    page.get_by_role("radio", name="Freie Erkundung").check()
+    page.get_by_role("group", name="Probe-Runde").get_by_role("radio", name="Freie Erkundung").check()
     play.click()
     expect(play).to_have_text("Pause")
     expect(progress).to_be_visible()
@@ -528,8 +532,9 @@ def full_flow(browser, url, image):
     expect(actions).to_have_text(["Accept Calibration", "Restart Calibration"])
     page.locator("#preview-continue").click()
     expect(page.get_by_role("radio")).to_have_count(3)
-    practice = page.get_by_role("radio", name="Probe-Runde")
-    exploration = page.get_by_role("radio", name="Freie Erkundung")
+    probe = page.get_by_role("group", name="Probe-Runde")
+    practice = probe.get_by_role("radio", name="Geführte Atmung")
+    exploration = probe.get_by_role("radio", name="Freie Erkundung")
     main_study = page.get_by_role("radio", name="Haupt-Runde")
     expect(practice).to_be_focused()
     page.keyboard.press("ArrowRight")

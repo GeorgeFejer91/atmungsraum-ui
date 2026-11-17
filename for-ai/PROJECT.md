@@ -23,10 +23,11 @@ Simulation menu.
    **Accept Calibration** advances once the Quest reports a ready input.
    **Restart Calibration** retries, and the controller option appears after
    two Quest-reported Polar attempts for the current participant setup.
-4. **VR scenario and session.** Show three illustrated square tiles on one
-   page: **Probe-Runde** (instruction plus five minutes of guided breathing),
-   **Freie Erkundung** (instruction plus 7:05 of unguided breathing), and
-   **Haupt-Runde** (15 minutes, one fixed condition). Select a tile and press
+4. **VR scenario and session.** Group two illustrated options under
+   **Probe-Runde**: **Geführte Atmung** (instruction plus five minutes of
+   guided breathing) and **Freie Erkundung** (instruction plus 7:05 of
+   unguided breathing). Show **Haupt-Runde** (15 minutes, one fixed condition)
+   separately on the same page. Select an option and press
    **Starten**. Timed runs show elapsed and total time and a progress bar above
    the pause and end controls. The bar holds while paused.
 
@@ -101,6 +102,9 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
 - [x] Play the supplied instruction and music in Freie Erkundung. Chrome
   verified the handoff, pause and resume, and automatic completion. The
   strict audit passed 42 states across seven viewport cases.
+- [x] Group Geführte Atmung and Freie Erkundung under Probe-Runde. Chrome
+  verified keyboard selection, and the strict audit passed 42 states across
+  seven viewport cases.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 

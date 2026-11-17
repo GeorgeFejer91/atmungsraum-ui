@@ -26,11 +26,11 @@ cues and shows calibration progress. **Cancel Instructions** stops the intro
 before any calibration data is collected. **Restart Calibration** retries the
 breathing cycles directly. Verify the particle response with the participant, then
 accept or restart. After two Polar attempts the operator can also switch to a VR
-controller and check its response. Accepting opens a single page with three
-illustrated scenario tiles: **Probe-Runde** (instruction plus five minutes
-of guided breathing), **Freie Erkundung** (instruction plus 7:05 of free
-breathing), and **Haupt-Runde** (15 minutes, one fixed condition). Start,
-pause, resume, and end the run using the app's controls. Each scenario shows
+controller and check its response. Accepting opens scenario selection.
+Under **Probe-Runde**, choose **Geführte Atmung** (instruction plus five
+minutes of guided breathing) or **Freie Erkundung** (instruction plus 7:05 of
+free breathing). **Haupt-Runde** runs for 15 minutes in one fixed condition.
+Start, pause, resume, and end the run using the app's controls. Each scenario shows
 a progress bar and elapsed versus total time. Saved runs offer a synthetic
 CSV download.
 
@@ -75,9 +75,9 @@ sounds from Proton Drive play beneath the corresponding German counts.
 [Voice takes](https://github.com/GeorgeFejer91/viscereality.org/tree/574a43359266de733eeb44d70e740e05c86f0922/atmungsraum/assets/audio/main-study/de)
 · [Breath recording provenance](https://github.com/GeorgeFejer91/viscereality.org/blob/96713eed1cf43ea8940d17ca727fd9f318d8900e/atmungsraum/assets/audio/box-breathing/de/soft-v2/manifest.json)
 
-Playback begins on a calibration or session action. Probe-Runde and Haupt-Runde
-use the guided cues at normal speed. Accelerated runs are silent. A connected
-Quest owns its own audio.
+Playback begins on a calibration or session action. **Geführte Atmung** and
+**Haupt-Runde** use the guided cues at normal speed. Accelerated runs are
+silent. A connected Quest owns its own audio.
 
 **Freie Erkundung** plays the German instruction, then fades in the supplied
 background music over three seconds. The music plays once for 7:05; the 7:27

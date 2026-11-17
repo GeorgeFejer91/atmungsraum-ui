@@ -14,7 +14,7 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/app-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./style.css?v=calibration-prelude">
+  <link rel="stylesheet" href="./style.css?v=probe-scenarios">
   <script type="module" src="./pwa-install.js?v=2"></script>
   <script type="module" src="./app.js?v=free-exploration-audio"></script>
 </head>
@@ -300,16 +300,21 @@
           <fieldset id="quest-scenario">
             <legend class="sr-only">VR-Szenario</legend>
             <div class="session-tiles">
-              <label class="session-tile">
-                <input type="radio" name="quest-scenario" value="probe-5" checked>
-                <img src="./assets/scenes/practice.svg" alt="" width="96" height="96">
-                <span data-measure>Probe-Runde</span>
-              </label>
-              <label class="session-tile">
-                <input type="radio" name="quest-scenario" value="free-exploration">
-                <img src="./assets/scenes/exploration.svg" alt="" width="96" height="96">
-                <span data-measure>Freie Erkundung</span>
-              </label>
+              <div class="probe-scenarios" role="group" aria-labelledby="probe-scenarios-title">
+                <p id="probe-scenarios-title" data-measure>Probe-Runde</p>
+                <div class="probe-scenario-tiles">
+                  <label class="session-tile">
+                    <input type="radio" name="quest-scenario" value="probe-5" checked>
+                    <img src="./assets/scenes/practice.svg" alt="" width="96" height="96">
+                    <span data-measure>Geführte Atmung</span>
+                  </label>
+                  <label class="session-tile">
+                    <input type="radio" name="quest-scenario" value="free-exploration">
+                    <img src="./assets/scenes/exploration.svg" alt="" width="96" height="96">
+                    <span data-measure>Freie Erkundung</span>
+                  </label>
+                </div>
+              </div>
               <label class="session-tile">
                 <input type="radio" name="quest-scenario" value="haupt-15">
                 <img src="./assets/scenes/main.svg" alt="" width="96" height="96">

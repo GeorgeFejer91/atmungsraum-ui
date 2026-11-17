@@ -169,7 +169,7 @@ def measure_views(page, flow, url, style_text):
             expect(page.locator("#quest-recovery-open")).to_be_hidden()
             capture("session audio unavailable")
             page.unroute(narration_route)
-            page.get_by_role("radio", name="Freie Erkundung").check()
+            page.get_by_role("group", name="Probe-Runde").get_by_role("radio", name="Freie Erkundung").check()
             page.locator("#quest-play").click()
             expect(page.locator("#quest-play")).to_have_text("Pause")
             expect(page.locator("#quest-progress")).to_have_attribute("max", "447070")
