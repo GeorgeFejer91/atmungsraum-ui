@@ -76,6 +76,9 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   original Quest breathing loop during calibration and real-time timed runs.
   Chrome verified direct links, rendered audio, recovery, pause and resume.
   The strict audit passed 34 states across seven viewport cases.
+- [x] Use the main project's four-second inhale and exhale mixes in the
+  playground. The Proton Drive originals match the upstream source hashes.
+  Chrome confirmed the breath layer between counts on both phases.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 
@@ -122,8 +125,9 @@ original operator controller and clients in `vendor/atmungsraum/` to the in-page
 backends. The transport exercises the clients' signed and encrypted message
 validation. Discovery returns synthetic metadata. Recordings use a fixed demo
 identity and a dedicated browser cache. Requests stay on the page's origin.
-`playground-audio.js` uses the same four source WAVs as the selected Quest loop
-and follows the simulated playback state. It is separate from production audio.
+`playground-audio.js` follows the simulated playback state and the Quest loop's
+four-phase timing. It uses the main project's breath mixes on each inhale and
+exhale and the original spoken hold cues.
 See [README](../README.md) for transferring design changes to the original app.
 
 Upstream visuals are pinned to `3f8d7c8befa3c13d1e8f574e82082468ba5128f7`.

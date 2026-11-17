@@ -153,6 +153,13 @@ def check_playback(browser, url):
         source.start = (...args) => {
           start(...args);
           const observation = { offset: args[1] || 0, duration: source.buffer.duration,
+            breathBetweenCounts: phaseStart => {
+              const { sampleRate } = source.buffer;
+              const gap = source.buffer.getChannelData(0).subarray(
+                Math.round((phaseStart + 1.82) * sampleRate), Math.round((phaseStart + 1.88) * sampleRate));
+              const rms = Math.sqrt(gap.reduce((energy, value) => energy + value * value, 0) / gap.length);
+              return rms > 0.01;
+            },
             ended: false, audible: () => {
               const samples = new Float32Array(analyser.fftSize);
               analyser.getFloatTimeDomainData(samples);
@@ -170,6 +177,8 @@ def check_playback(browser, url):
     assert page.evaluate("cueLoops.length") == 0
     page.locator("#preview-calibrate").click()
     page.wait_for_function("cueLoops[0]?.duration === 16 && cueLoops[0].audible()", timeout=10000)
+    assert page.evaluate("[0, 8].every(phaseStart => cueLoops[0].breathBetweenCounts(phaseStart))"), \
+        "Expected breathing sound between the counts in both inhale and exhale"
     set_fixture(page, "setup-error")
     page.wait_for_function("cueLoops[0].ended")
     page.locator("#preview-restart").click()

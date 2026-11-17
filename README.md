@@ -59,12 +59,16 @@ separate deterministic fixtures.
 
 ## Breathing audio
 
-The playground plays the original four German cues from the main project's
-[shared breathing loop](https://github.com/GeorgeFejer91/viscereality.org/blob/4dbd36459f1b9c713bd3290e8318776e86c4ae43/atmungsraum/audio/box-loop.json).
-The WAVs are copied unchanged and served from the playground. Playback begins
-on a calibration or session action. Both timed scenarios use the loop in the
-playground. Free exploration and accelerated runs are silent. A connected
-Quest owns its own audio; browser playback here is a simulation.
+The playground follows the main project's four-phase breathing loop. Every
+inhale and exhale layers a four-second breathing sound beneath the German
+count. The overlays use the main project's existing mixes of the Proton Drive
+recordings. Both holds use the original spoken cues.
+[Loop timing](https://github.com/GeorgeFejer91/viscereality.org/blob/4dbd36459f1b9c713bd3290e8318776e86c4ae43/atmungsraum/audio/box-loop.json)
+· [Mix provenance](https://github.com/GeorgeFejer91/viscereality.org/blob/96713eed1cf43ea8940d17ca727fd9f318d8900e/atmungsraum/assets/audio/box-breathing/de/soft-v2/manifest.json)
+
+Playback begins on a calibration or session action. Both timed scenarios use
+the loop at normal speed. Free exploration and accelerated runs are silent. A
+connected Quest owns its own audio.
 
 ## Edit and check
 

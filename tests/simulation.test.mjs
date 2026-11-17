@@ -32,7 +32,7 @@ test('the fixture produces a visible packet gap in the production ECG renderer',
   assert.equal(display.frame(now + packet.ttl), null);
 });
 
-test('the browser uses the original Quest breathing manifest and WAV bytes', () => {
+test('the Quest breathing loop fixture matches the original manifest and WAV bytes', () => {
   const upstream = readFileSync(new URL('../assets/audio/box-loop.json', import.meta.url));
   assert.equal(createHash('sha256').update(upstream).digest('hex'),
     'b50ce8853b9d097b904cc90043e580a75ce17662e1ff2c985bb08b7df45a9ece');
@@ -40,6 +40,17 @@ test('the browser uses the original Quest breathing manifest and WAV bytes', () 
     const wav = readFileSync(new URL(`../${cue.path}`, import.meta.url));
     assert.equal(wav.length, cue.bytes);
     assert.equal(createHash('sha256').update(wav).digest('hex'), cue.sha256);
+  }
+});
+
+test('the mixed inhale and exhale cues match the main project audio bytes', () => {
+  const mixes = {
+    inhale: 'b68c51bf393d6974e304ad52838020c4d02ea4396af779e527d28b1dc72a7281',
+    exhale: '3a8650778a528656a4a1cc4f601d43236606eaa750f8b294f43a23bbd0aa31f8',
+  };
+  for (const [phase, hash] of Object.entries(mixes)) {
+    const wav = readFileSync(new URL(`../assets/audio/box-breathing/de/soft-v2/${phase}_breath.wav`, import.meta.url));
+    assert.equal(createHash('sha256').update(wav).digest('hex'), hash);
   }
 });
 

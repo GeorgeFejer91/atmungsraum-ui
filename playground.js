@@ -1,7 +1,7 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
 import { createMockQuest } from './mock-quest.js?v=review-links';
 import { openDialog } from './dialogs.js';
-import { mountBreathingAudio } from './playground-audio.js';
+import { mountBreathingAudio } from './playground-audio.js?v=breath-overlays';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
 import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=review-links';
 import { showBluetooth, showOfflineChecks } from './connectivity.js?v=header-actions';

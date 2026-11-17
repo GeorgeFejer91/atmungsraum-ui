@@ -8,7 +8,8 @@ async function loadBreathingLoop(context) {
   const plan = await (await fetchAudioAsset('./assets/audio/box-loop.json')).json();
   const rate = context.sampleRate;
   const samples = await Promise.all(plan.phases.map(async ({ cue }) => {
-    const bytes = await (await fetchAudioAsset(cue.path)).arrayBuffer();
+    const path = cue.path.replace(/\/(inhale|exhale)\.wav$/, '/$1_breath.wav');
+    const bytes = await (await fetchAudioAsset(path)).arrayBuffer();
     return context.decodeAudioData(bytes);
   }));
   const buffer = context.createBuffer(1, plan.cycle_frames * rate / plan.sample_rate, rate);
