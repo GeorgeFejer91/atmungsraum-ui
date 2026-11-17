@@ -1,0 +1,84 @@
+{
+  "cue_seconds": 4,
+  "sha256": "b2ad3f31117e1098ef48352a5e479ed9acfa0e00e860da58ad7f77f85c36c385",
+  "pools": {
+    "inhale": [
+      {
+        "id": "einatmen-01",
+        "offset": 0
+      },
+      {
+        "id": "einatmen-02",
+        "offset": 4
+      },
+      {
+        "id": "einatmen-03",
+        "offset": 8
+      },
+      {
+        "id": "einatmen-04",
+        "offset": 12
+      },
+      {
+        "id": "einatmen-05",
+        "offset": 16
+      },
+      {
+        "id": "einatmen-06",
+        "offset": 20
+      },
+      {
+        "id": "einatmen-07",
+        "offset": 24
+      }
+    ],
+    "exhale": [
+      {
+        "id": "ausatmen-01",
+        "offset": 28
+      },
+      {
+        "id": "ausatmen-02",
+        "offset": 32
+      },
+      {
+        "id": "ausatmen-03",
+        "offset": 36
+      },
+      {
+        "id": "ausatmen-04",
+        "offset": 40
+      },
+      {
+        "id": "ausatmen-05",
+        "offset": 44
+      },
+      {
+        "id": "ausatmen-06",
+        "offset": 48
+      },
+      {
+        "id": "ausatmen-07",
+        "offset": 52
+      },
+      {
+        "id": "ausatmen-08",
+        "offset": 56
+      },
+      {
+        "id": "ausatmen-09",
+        "offset": 60
+      }
+    ],
+    "hold": [
+      {
+        "id": "halten-01",
+        "offset": 64
+      },
+      {
+        "id": "halten-02",
+        "offset": 68
+      }
+    ]
+  }
+}

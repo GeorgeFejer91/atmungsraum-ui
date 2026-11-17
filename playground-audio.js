@@ -4,30 +4,63 @@ async function fetchAudioAsset(path) {
   return response;
 }
 
-async function loadBreathingLoop(context) {
-  const plan = await (await fetchAudioAsset('./assets/audio/box-loop.json')).json();
-  const rate = context.sampleRate;
-  const samples = await Promise.all(plan.phases.map(async ({ cue }) => {
-    const path = cue.path.replace(/\/(inhale|exhale)\.wav$/, '/$1_breath.wav');
-    const bytes = await (await fetchAudioAsset(path)).arrayBuffer();
-    return context.decodeAudioData(bytes);
-  }));
-  const buffer = context.createBuffer(1, plan.cycle_frames * rate / plan.sample_rate, rate);
-  plan.phases.forEach(({ offset_frames, duration_frames }, i) => {
-    if (samples[i].length !== duration_frames * rate / plan.sample_rate) throw new Error('Unexpected breathing cue length');
-    buffer.copyToChannel(samples[i].getChannelData(0), 0, offset_frames * rate / plan.sample_rate);
-  });
-  return buffer;
+async function loadBreathingCues(context) {
+  const [plan, bytes] = await Promise.all([
+    fetchAudioAsset('./assets/audio/main-study-cues.json').then(response => response.json()),
+    fetchAudioAsset('./assets/audio/main-study-cues.flac').then(response => response.arrayBuffer()),
+  ]);
+  const buffer = await context.decodeAudioData(bytes);
+  const cueCount = Object.values(plan.pools).reduce((total, pool) => total + pool.length, 0);
+  if (buffer.duration !== cueCount * plan.cue_seconds) throw new Error('Unexpected breathing cue bank length');
+  return { plan, buffer };
+}
+
+const phasePools = ['inhale', 'hold', 'exhale', 'hold'];
+
+function playBreathingCues(context, { plan, buffer }, seconds) {
+  const phaseSeconds = plan.cue_seconds;
+  const origin = context.currentTime - seconds;
+  let phase = Math.floor(seconds / phaseSeconds);
+  const sources = new Set();
+
+  function schedule() {
+    const now = context.currentTime;
+    phase = Math.max(phase, Math.floor((now - origin) / phaseSeconds));
+    const boundary = origin + phase * phaseSeconds;
+    if (boundary > now + 0.5) return;
+    const cycle = Math.floor(phase / phasePools.length);
+    const slot = phase % phasePools.length;
+    const pool = plan.pools[phasePools[slot]];
+    const cue = pool[(cycle + Number(slot === 3)) % pool.length];
+    const start = Math.max(now, boundary);
+    const elapsed = start - boundary;
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(context.destination);
+    source.onended = () => { sources.delete(source); source.disconnect(); };
+    sources.add(source);
+    source.start(start, cue.offset + elapsed, phaseSeconds - elapsed);
+    phase++;
+  }
+
+  schedule();
+  const timer = setInterval(schedule, 150);
+  return () => {
+    clearInterval(timer);
+    for (const source of sources) {
+      source.onended = null;
+      source.stop();
+      source.disconnect();
+    }
+  };
 }
 
 export function mountBreathingAudio(readPlayback) {
-  let context, buffer, source, playingKey, loading, failed;
+  let context, cues, stopPlayback, playingKey, loading, failed;
 
   function stop() {
-    if (!source) return;
-    source.stop();
-    source.disconnect();
-    source = undefined;
+    stopPlayback?.();
+    stopPlayback = undefined;
   }
 
   function audioFailed(error) {
@@ -38,20 +71,16 @@ export function mountBreathingAudio(readPlayback) {
   function update() {
     const playback = document.hidden ? null : readPlayback();
     if (!playback || context?.state !== 'running') { stop(); return; }
-    if (!buffer) {
+    if (!cues) {
       if (!loading && !failed) {
-        loading = loadBreathingLoop(context).then(loop => { buffer = loop; update(); })
+        loading = loadBreathingCues(context).then(loaded => { cues = loaded; update(); })
           .catch(audioFailed).finally(() => { loading = undefined; });
       }
       return;
     }
-    if (source && playingKey === playback.key) return;
+    if (stopPlayback && playingKey === playback.key) return;
     stop();
-    source = context.createBufferSource();
-    source.buffer = buffer;
-    source.loop = true;
-    source.connect(context.destination);
-    source.start(0, playback.seconds % buffer.duration);
+    stopPlayback = playBreathingCues(context, cues, playback.seconds);
     playingKey = playback.key;
   }
 

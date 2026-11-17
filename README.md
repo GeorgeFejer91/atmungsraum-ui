@@ -59,12 +59,11 @@ separate deterministic fixtures.
 
 ## Breathing audio
 
-The playground follows the main project's four-phase breathing loop. Every
-inhale and exhale layers a four-second breathing sound beneath the German
-count. The overlays use the main project's existing mixes of the Proton Drive
-recordings. Both holds use the original spoken cues.
-[Loop timing](https://github.com/GeorgeFejer91/viscereality.org/blob/4dbd36459f1b9c713bd3290e8318776e86c4ae43/atmungsraum/audio/box-loop.json)
-· [Mix provenance](https://github.com/GeorgeFejer91/viscereality.org/blob/96713eed1cf43ea8940d17ca727fd9f318d8900e/atmungsraum/assets/audio/box-breathing/de/soft-v2/manifest.json)
+The playground rotates through the main study's seven inhale, nine exhale and
+two hold takes. Each phase lasts four seconds. The recorded inhale and exhale
+sounds from Proton Drive play beneath the corresponding German counts.
+[Voice takes](https://github.com/GeorgeFejer91/viscereality.org/tree/574a43359266de733eeb44d70e740e05c86f0922/atmungsraum/assets/audio/main-study/de)
+· [Breath recording provenance](https://github.com/GeorgeFejer91/viscereality.org/blob/96713eed1cf43ea8940d17ca727fd9f318d8900e/atmungsraum/assets/audio/box-breathing/de/soft-v2/manifest.json)
 
 Playback begins on a calibration or session action. Both timed scenarios use
 the loop at normal speed. Free exploration and accelerated runs are silent. A
@@ -81,7 +80,10 @@ connected Quest owns its own audio.
   `vendor/atmungsraum/` contains the original controller and clients. Its
   integration changes cover injected services, session storage, calibration
   presentation, shared renderer paths, review entry points, and the audit
-  recording cache. `playground-audio.js` plays the pinned breathing cues.
+  recording cache. `playground-audio.js` schedules the breathing cues from
+  [the cue catalog](assets/audio/main-study-cues.json). Regenerate the mixed
+  cue bank with `node tools/build-preview-audio.mjs <main project atmungsraum directory>`
+  using FFmpeg and the main project checkout containing the source takes.
 - Serve the folder with `python -m http.server 8000`. Run `pnpm test` for
   deterministic data and audio file integrity checks and `python tools/check-ui.py`
   for the Chrome and Playwright browser checks. The latter accepts `--url` for

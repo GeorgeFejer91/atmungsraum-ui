@@ -143,7 +143,7 @@ def check_review_links(browser, url):
 def check_playback(browser, url):
     page = browser.new_page()
     page.add_init_script("""(() => {
-      window.cueLoops = [];
+      window.playedCues = [];
       const create = AudioContext.prototype.createBufferSource;
       AudioContext.prototype.createBufferSource = function () {
         const source = create.call(this);
@@ -152,21 +152,14 @@ def check_playback(browser, url):
         const start = source.start.bind(source);
         source.start = (...args) => {
           start(...args);
-          const observation = { offset: args[1] || 0, duration: source.buffer.duration,
-            breathBetweenCounts: phaseStart => {
-              const { sampleRate } = source.buffer;
-              const gap = source.buffer.getChannelData(0).subarray(
-                Math.round((phaseStart + 1.82) * sampleRate), Math.round((phaseStart + 1.88) * sampleRate));
-              const rms = Math.sqrt(gap.reduce((energy, value) => energy + value * value, 0) / gap.length);
-              return rms > 0.01;
-            },
+          const observation = { offset: args[1], start: args[0], duration: args[2],
             ended: false, audible: () => {
               const samples = new Float32Array(analyser.fftSize);
               analyser.getFloatTimeDomainData(samples);
               return samples.some(sample => Math.abs(sample) > 0.001);
             } };
           source.addEventListener('ended', () => observation.ended = true);
-          window.cueLoops.push(observation);
+          window.playedCues.push(observation);
         };
         return source;
       };
@@ -174,30 +167,33 @@ def check_playback(browser, url):
     assert page.goto(url).ok
     enter_participant(page)
     expect(page.locator("#preview-calibrate")).to_be_enabled()
-    assert page.evaluate("cueLoops.length") == 0
+    assert page.evaluate("playedCues.length") == 0
     page.locator("#preview-calibrate").click()
-    page.wait_for_function("cueLoops[0]?.duration === 16 && cueLoops[0].audible()", timeout=10000)
-    assert page.evaluate("[0, 8].every(phaseStart => cueLoops[0].breathBetweenCounts(phaseStart))"), \
-        "Expected breathing sound between the counts in both inhale and exhale"
+    page.wait_for_function("playedCues[0]?.audible()", timeout=10000)
     set_fixture(page, "setup-error")
-    page.wait_for_function("cueLoops[0].ended")
+    page.wait_for_function("playedCues.every(cue => cue.ended)")
+    before = page.evaluate("playedCues.length")
     page.locator("#preview-restart").click()
-    page.wait_for_function("cueLoops[1]?.audible()", timeout=10000)
+    page.wait_for_function("before => playedCues[before]?.audible()", arg=before, timeout=10000)
 
     assert page.goto(urlsplit(url)._replace(query="view=session").geturl()).ok
     play = page.locator("#quest-play")
     expect(play).to_have_text("Starten")
-    assert page.evaluate("cueLoops.length") == 0
+    assert page.evaluate("playedCues.length") == 0
     play.click()
-    page.wait_for_function("cueLoops[0]?.audible()", timeout=10000)
+    page.wait_for_function("playedCues[0]?.audible()", timeout=10000)
+    page.wait_for_function("playedCues[4]?.audible()", timeout=20000)
+    assert page.evaluate("playedCues.slice(0, 5).map(cue => Math.floor(cue.offset / 4) * 4)") == [0, 64, 28, 68, 4]
+    assert page.evaluate("playedCues.slice(1, 5).every((cue, i) => "
+                         "Math.abs(cue.start - (playedCues[0].start + playedCues[0].duration + i * 4)) < .01)")
     play.click()
     expect(play).to_have_text("Fortsetzen")
-    page.wait_for_function("cueLoops[0].ended")
+    page.wait_for_function("playedCues.every(cue => cue.ended)")
+    before = page.evaluate("playedCues.length")
     play.click()
-    page.wait_for_function("cueLoops[1]?.offset > cueLoops[0].offset")
+    page.wait_for_function("before => playedCues[before]?.offset > playedCues[4].offset", arg=before)
     page.locator("#quest-finish").click()
-    page.wait_for_function("cueLoops[1].ended")
-    assert page.evaluate("cueLoops.length") == 2
+    page.wait_for_function("playedCues.every(cue => cue.ended)")
     page.close()
 
 

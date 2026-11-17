@@ -54,6 +54,17 @@ test('the mixed inhale and exhale cues match the main project audio bytes', () =
   }
 });
 
+test('the preview audio matches the catalog of all 18 main-study takes', () => {
+  const catalog = JSON.parse(readFileSync(new URL('../assets/audio/main-study-cues.json', import.meta.url)));
+  const bank = readFileSync(new URL('../assets/audio/main-study-cues.flac', import.meta.url));
+  assert.equal(createHash('sha256').update(bank).digest('hex'), catalog.sha256);
+  assert.equal(catalog.cue_seconds, 4);
+  const takes = Object.values(catalog.pools).flat();
+  assert.equal(new Set(takes.map(take => take.id)).size, 18);
+  assert.deepEqual(Object.values(catalog.pools).map(pool => pool.length), [7, 9, 2]);
+  assert.deepEqual(takes.map(take => take.offset), Array.from({ length: 18 }, (_, i) => i * 4));
+});
+
 test('box cue, accelerated run clock and mock download stay deterministic', () => {
   assert.deepEqual([0, 2000, 4000, 8000, 10000, 12000, 16000].map(breathVolumeAt), [0, .5, 1, 1, .5, 0, 0]);
   const run = { duration: 900, elapsed: 24, speed: 60, started: 1000 };
