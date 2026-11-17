@@ -1,5 +1,5 @@
 import { MockECG } from './mock-ecg.js';
-import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, runLengths, sceneBreathingAt } from './simulation.js?v=scene-particles';
+import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, runLengths, sceneBreathingAt } from './simulation.js?v=main-study-sequence';
 import { joinQuest } from './vendor/atmungsraum/quest-gateway.js';
 import { pairPhone } from './vendor/atmungsraum/quest-pairing.js';
 import { createMockRecordings } from './mock-recordings.js';
@@ -19,7 +19,7 @@ const inputByCommand = {
 };
 const polarCommands = new Set(['scan', 'select', 'connect', 'start-ecg', 'start-acc']);
 
-export function createMockQuest(review) {
+export function createMockQuest(review, prepareMainStudy) {
   const owner = { serial: 'AUDIT-QUEST', device: randomHex(16), identity_kind: 'app-installation', epoch: '7', native_epoch: '8' };
   const enrollment = { controller: randomHex(16), key: randomHex(32) };
   const source = new MockECG();
@@ -177,7 +177,7 @@ export function createMockQuest(review) {
     phase = 'ARMED';
   }
 
-  async function sessionAction(action, command, now) {
+  async function sessionAction(action, command, now, signal) {
     const { op } = command;
     if (op === 'arm') {
       const { scenario, participant_id } = command;
@@ -201,6 +201,13 @@ export function createMockQuest(review) {
       return true;
     }
     if ((op === 'start' && phase === 'ARMED' || op === 'resume' && phase === 'PAUSED') && fixture !== 'signal-loss') {
+      if (op === 'start' && run.scenario === 'haupt-15' && run.speed === 1) {
+        const armed = run;
+        const ready = await prepareMainStudy();
+        signal?.throwIfAborted();
+        if (!ready || run !== armed || phase !== 'ARMED' || fixture === 'signal-loss' || access.role !== 'active') return false;
+        now = performance.now();
+      }
       run.started = now;
       phase = 'RUNNING';
       return true;
@@ -253,7 +260,7 @@ export function createMockQuest(review) {
       return saveReceipt(command, 'confirmed');
     }
     const accepted = action === 'command' && polarCommands.has(command.op) ? polarAction(command)
-      : ['command', 'participant-arm'].includes(action) && await sessionAction(action, command, now);
+      : ['command', 'participant-arm'].includes(action) && await sessionAction(action, command, now, signal);
     return saveReceipt(command, accepted ? 'confirmed' : 'rejected');
   }
 
@@ -268,13 +275,13 @@ export function createMockQuest(review) {
   return {
     sceneBreathing(now) {
       if (!run || !connected || !acc || fixture === 'signal-loss' || !['RUNNING', 'PAUSED'].includes(phase)) return null;
-      return sceneBreathingAt(elapsedRun(run, now) * 1000);
+      return sceneBreathingAt(elapsedRun(run, now) * 1000, run.scenario);
     },
     audioPlayback(calibrationRequested) {
       const now = performance.now();
       if (phase === 'RUNNING' && run.scenario !== 'free-exploration' && run.speed === 1) {
         const seconds = elapsedRun(run, now);
-        return seconds < run.duration ? { key: `run/${generation}/${run.started}`, seconds } : null;
+        return seconds < run.duration ? { key: `run/${generation}/${run.started}`, seconds, mainStudy: run.scenario === 'haupt-15' } : null;
       }
       if (calibrationRequested && phase === 'IDLE' && setup.started !== null && !recovery && fixture !== 'setup-error') {
         return { key: `calibration/${setup.g}`, seconds: (now - setup.started) / 1000 };

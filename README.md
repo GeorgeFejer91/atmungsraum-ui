@@ -75,6 +75,11 @@ Playback begins on a calibration or session action. Both timed scenarios use
 the loop at normal speed. Free exploration and accelerated runs are silent. A
 connected Quest owns its own audio.
 
+**Haupt-Runde** opens with the eyes-closed and eyes-open breathing checks,
+then the German box-breathing instructions. The first guided inhale starts
+about 2 minutes 40 seconds into the run. After 45 complete breathing cycles,
+the recorded outro plays within the 15-minute session.
+
 ## Edit and check
 
 - Edit `index.html` and `style.css` for shared screen structure and styling.
@@ -87,8 +92,9 @@ connected Quest owns its own audio.
   integration changes cover injected services, session storage, calibration
   presentation, shared renderer paths, review entry points, and the audit
   recording cache. `playground-audio.js` schedules the breathing cues from
-  [the cue catalog](assets/audio/main-study-cues.json). Regenerate the mixed
-  cue bank with `node tools/build-preview-audio.mjs <main project atmungsraum directory>`
+  [the cue catalog](assets/audio/main-study-cues.json) and the narration from
+  [the main-study timeline](assets/audio/main-study-timeline.js). Regenerate
+  the audio banks with `node tools/build-preview-audio.mjs <main project atmungsraum directory>`
   using FFmpeg and the main project checkout containing the source takes.
 - Serve the folder with `python -m http.server 8000`. Run `pnpm test` for
   deterministic data and audio file integrity checks and `python tools/check-ui.py`

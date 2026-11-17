@@ -1,3 +1,5 @@
+import { mainStudy } from './assets/audio/main-study-timeline.js';
+
 export const ecgRate = 130;
 const packetLength = ecgRate * 2;
 const clockHz = 1_000_000_000;
@@ -30,7 +32,16 @@ export function breathVolumeAt(timeMs) {
   return 0;
 }
 
-export function sceneBreathingAt(timeMs) {
+export function sceneBreathingAt(timeMs, scenario) {
+  if (scenario === 'haupt-15') {
+    const cycleStart = mainStudy.cycleStartFrame * 1000 / mainStudy.sampleRate;
+    const closingStart = mainStudy.closing.startFrame * 1000 / mainStudy.sampleRate;
+    if (timeMs < cycleStart || timeMs >= closingStart) {
+      const naturalTime = timeMs < cycleStart ? timeMs - cycleStart : timeMs - closingStart;
+      return { phase: 'natural', radiusM: 1 + (1 - Math.cos(2 * Math.PI * naturalTime / 12000)) / 2 };
+    }
+    timeMs -= cycleStart;
+  }
   const phase = Math.floor((timeMs % 16000) / 4000);
   const volume = (1 - Math.cos(Math.PI * breathVolumeAt(timeMs))) / 2;
   return { phase: scenePhases[phase], radiusM: 1 + volume };
@@ -39,7 +50,7 @@ export function sceneBreathingAt(timeMs) {
 export const runLengths = {
   'probe-5': 300,
   'free-exploration': Infinity,
-  'haupt-15': 900,
+  'haupt-15': mainStudy.durationFrames / mainStudy.sampleRate,
 };
 
 export function elapsedRun(run, now) {

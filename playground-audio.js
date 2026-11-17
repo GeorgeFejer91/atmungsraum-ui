@@ -1,3 +1,5 @@
+import { mainStudy } from './assets/audio/main-study-timeline.js';
+
 async function fetchAudioAsset(path) {
   const response = await fetch(new URL(path, import.meta.url));
   if (!response.ok) throw new Error(`Could not load ${path} (${response.status})`);
@@ -16,31 +18,57 @@ async function loadBreathingCues(context) {
 }
 
 const phasePools = ['inhale', 'hold', 'exhale', 'hold'];
+const rate = mainStudy.sampleRate;
 
-function playBreathingCues(context, { plan, buffer }, seconds) {
-  const phaseSeconds = plan.cue_seconds;
-  const origin = context.currentTime - seconds;
-  let phase = Math.floor(seconds / phaseSeconds);
+async function loadNarration(context) {
+  const bytes = await (await fetchAudioAsset('./assets/audio/main-study-narration.flac')).arrayBuffer();
+  const buffer = await context.decodeAudioData(bytes);
+  if (buffer.duration !== (mainStudy.cycleStartFrame + mainStudy.closing.frames) / rate) {
+    throw new Error('Unexpected main-study narration length');
+  }
+  return buffer;
+}
+
+function cueAt(cues, narration, frame) {
+  const cycleStart = narration ? mainStudy.cycleStartFrame : 0;
+  if (narration && frame < cycleStart) {
+    const cue = mainStudy.opening.find(item => frame < item.startFrame + item.frames);
+    return { ...cue, buffer: narration };
+  }
+  if (narration && frame >= mainStudy.closing.startFrame) {
+    return frame < mainStudy.durationFrames ? { ...mainStudy.closing, buffer: narration } : null;
+  }
+  const frames = cues.plan.cue_seconds * rate;
+  const phase = Math.floor((frame - cycleStart) / frames);
+  const cycle = Math.floor(phase / phasePools.length);
+  const slot = phase % phasePools.length;
+  const pool = cues.plan.pools[phasePools[slot]];
+  const cue = pool[(cycle + Number(slot === 3)) % pool.length];
+  return { startFrame: cycleStart + phase * frames, frames, offsetFrame: cue.offset * rate, buffer: cues.buffer };
+}
+
+function playCues(context, cues, narration, playback) {
+  const origin = context.currentTime - playback.seconds;
+  let nextFrame = 0;
   const sources = new Set();
 
   function schedule() {
     const now = context.currentTime;
-    phase = Math.max(phase, Math.floor((now - origin) / phaseSeconds));
-    const boundary = origin + phase * phaseSeconds;
+    const cue = cueAt(cues, narration, Math.max(nextFrame, Math.floor((now - origin) * rate)));
+    if (!cue) return;
+    const boundary = origin + cue.startFrame / rate;
     if (boundary > now + 0.5) return;
-    const cycle = Math.floor(phase / phasePools.length);
-    const slot = phase % phasePools.length;
-    const pool = plan.pools[phasePools[slot]];
-    const cue = pool[(cycle + Number(slot === 3)) % pool.length];
+    nextFrame = cue.startFrame + cue.frames;
     const start = Math.max(now, boundary);
     const elapsed = start - boundary;
+    const remaining = cue.frames / rate - elapsed;
+    if (remaining <= 0) return;
     const source = context.createBufferSource();
-    source.buffer = buffer;
+    source.buffer = cue.buffer;
     source.connect(context.destination);
     source.onended = () => { sources.delete(source); source.disconnect(); };
     sources.add(source);
-    source.start(start, cue.offset + elapsed, phaseSeconds - elapsed);
-    phase++;
+    source.start(start, cue.offsetFrame / rate + elapsed, remaining);
   }
 
   schedule();
@@ -56,7 +84,7 @@ function playBreathingCues(context, { plan, buffer }, seconds) {
 }
 
 export function mountBreathingAudio(readPlayback) {
-  let context, cues, stopPlayback, playingKey, loading, failed;
+  let context, cues, narration, stopPlayback, playingKey, cueLoading, narrationLoading, failed;
 
   function stop() {
     stopPlayback?.();
@@ -68,19 +96,35 @@ export function mountBreathingAudio(readPlayback) {
     console.warn('Playground breathing audio unavailable.', error);
   }
 
+  function prepareCues() {
+    return cueLoading ??= loadBreathingCues(context).then(bank => { cues = bank; })
+      .catch(error => { cueLoading = undefined; throw error; });
+  }
+
+  async function prepareMainStudy() {
+    if (!context) return true;
+    narrationLoading ??= loadNarration(context).then(bank => { narration = bank; })
+      .catch(error => { narrationLoading = undefined; throw error; });
+    try {
+      await Promise.all([prepareCues(), narrationLoading]);
+      return true;
+    } catch (error) {
+      audioFailed(error);
+      return false;
+    }
+  }
+
   function update() {
     const playback = document.hidden ? null : readPlayback();
     if (!playback || context?.state !== 'running') { stop(); return; }
     if (!cues) {
-      if (!loading && !failed) {
-        loading = loadBreathingCues(context).then(loaded => { cues = loaded; update(); })
-          .catch(audioFailed).finally(() => { loading = undefined; });
-      }
+      if (!cueLoading && !failed) void prepareCues().then(update).catch(audioFailed);
       return;
     }
+    if (playback.mainStudy && !narration) return;
     if (stopPlayback && playingKey === playback.key) return;
     stop();
-    stopPlayback = playBreathingCues(context, cues, playback.seconds);
+    stopPlayback = playCues(context, cues, playback.mainStudy ? narration : null, playback);
     playingKey = playback.key;
   }
 
@@ -96,5 +140,5 @@ export function mountBreathingAudio(readPlayback) {
 
   document.addEventListener('visibilitychange', update);
   window.addEventListener('pagehide', stop);
-  return { unlock, update };
+  return { unlock, update, prepareMainStudy };
 }

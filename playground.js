@@ -1,8 +1,8 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
-import { createMockQuest } from './mock-quest.js?v=scene-particles';
+import { createMockQuest } from './mock-quest.js?v=main-study-sequence';
 import { openDialog } from './dialogs.js';
-import { mountBreathingAudio } from './playground-audio.js?v=main-study-cues';
-import { mountSceneParticles } from './scene-particles.js';
+import { mountBreathingAudio } from './playground-audio.js?v=main-study-sequence';
+import { mountSceneParticles } from './scene-particles.js?v=main-study-sequence';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
 import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=review-links';
 import { showBluetooth, showOfflineChecks } from './connectivity.js?v=header-actions';
@@ -45,7 +45,7 @@ export function mountPlayground() {
   }
 
   const preview = byId('breathing-preview');
-  const quest = createMockQuest(entry);
+  const quest = createMockQuest(entry, () => audio.prepareMainStudy());
   const particles = mountSceneParticles(byId('scene-particles'), quest.sceneBreathing);
   let calibrationRequested = false, questAvailable = false;
   const audio = mountBreathingAudio(() => questAvailable ? quest.audioPlayback(calibrationRequested) : null);

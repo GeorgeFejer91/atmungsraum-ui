@@ -86,6 +86,9 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   expansion, contraction, pause, missing signal and reduced motion. At a
   320 × 640 emulated viewport, the draw loop ran at 23.8 updates per second
   with 0.2 ms per update at the 95th percentile across 101 updates.
+- [x] Play both control recordings, box-breathing instructions, 45 complete
+  cycles and the recorded outro within the 15-minute Haupt-Runde. Chrome
+  verified playback, pause and resume across the sequence and automatic end.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 
@@ -135,6 +138,9 @@ identity and a dedicated browser cache. Requests stay on the page's origin.
 `playground-audio.js` follows the simulated playback state and the Quest loop's
 four-phase timing. It rotates through the newer main-study voice takes and
 plays the recorded breath sound beneath each inhale and exhale cue.
+The 15-minute Haupt-Runde plays both control recordings, box-breathing
+instructions, 45 breathing cycles, and the recorded outro. Audio and the
+particle preview share the main-study timeline and simulated elapsed time.
 `scene-particles.js` draws 72 particles from the simulated Polar breathing
 signal. The radius follows the Quest configuration's 1 to 2 metre range in
 proportion, with sine-shaped transitions and both holds. The view caps

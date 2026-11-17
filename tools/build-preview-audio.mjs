@@ -21,8 +21,8 @@ const voicePeak = 32768 * 10 ** (-8 / 20);
 const pcm = [];
 const pools = {};
 
-function wavePcm(wav) {
-  if (wav.length !== cueBytes + 44 || wav.toString('ascii', 36, 40) !== 'data'
+function wavePcm(wav, frames = cueFrames) {
+  if (wav.length !== frames * 2 + 44 || wav.toString('ascii', 36, 40) !== 'data'
     || wav.readUInt32LE(24) !== rate || wav.readUInt16LE(22) !== 1 || wav.readUInt16LE(34) !== 16) {
     throw new Error('Expected a four-second mono PCM cue');
   }
@@ -51,10 +51,32 @@ for (const [phase, takes] of Object.entries(inventory.pools)) {
   });
 }
 
-const asset = new URL('main-study-cues.flac', audioRoot);
-execFileSync('ffmpeg', ['-nostdin', '-v', 'error', '-f', 's16le', '-ar', String(rate), '-ac', '1', '-i', 'pipe:0',
-  '-map_metadata', '-1', '-flags:a', '+bitexact', '-y', fileURLToPath(asset)], { input: Buffer.concat(pcm), windowsHide: true });
-const audio = await readFile(asset);
-const sha256 = createHash('sha256').update(audio).digest('hex');
+async function writeFlac(name, samples) {
+  const asset = new URL(name, audioRoot);
+  execFileSync('ffmpeg', ['-nostdin', '-v', 'error', '-f', 's16le', '-ar', String(rate), '-ac', '1', '-i', 'pipe:0',
+    '-map_metadata', '-1', '-flags:a', '+bitexact', '-y', fileURLToPath(asset)],
+  { input: Buffer.concat(samples), windowsHide: true });
+  return createHash('sha256').update(await readFile(asset)).digest('hex');
+}
+
+const sha256 = await writeFlac('main-study-cues.flac', pcm);
 await writeFile(new URL('main-study-cues.json', audioRoot), JSON.stringify({ cue_seconds: cueSeconds, sha256, pools }, null, 2) + '\n');
-console.log(`Mixed ${pcm.length} cues into ${audio.length} bytes`);
+
+const opening = plan.events.filter(event => event.id.startsWith('instruction_')).map(event => ({
+  id: event.asset, startFrame: event.offset_frames, frames: event.duration_frames, offsetFrame: event.offset_frames,
+}));
+const narration = opening.map(cue => wavePcm(files.get('assets/audio/scenarios/haupt-15/' + plan.audio_assets[cue.id].file), cue.frames));
+const cycleStartFrame = plan.events.find(event => event.id === 'inhale').offset_frames;
+const tail = plan.events.at(-1);
+const outroDirectory = join(sourceRoot, 'assets/audio/box-breathing/de/soft-v2');
+const outro = JSON.parse(await readFile(join(outroDirectory, 'outro.json')));
+const outroWav = await readFile(join(outroDirectory, outro.file));
+if (createHash('sha256').update(outroWav).digest('hex') !== outro.sha256 || outro.frames > tail.duration_frames) {
+  throw new Error('Unexpected main-study outro asset');
+}
+narration.push(wavePcm(outroWav, outro.frames), Buffer.alloc((tail.duration_frames - outro.frames) * 2));
+const closing = { id: 'outro', startFrame: tail.offset_frames, frames: tail.duration_frames, offsetFrame: cycleStartFrame };
+const timeline = { sampleRate: rate, durationFrames: plan.total_frames, opening, cycleStartFrame, cycles: plan.cycles, closing,
+  sha256: await writeFlac('main-study-narration.flac', narration) };
+await writeFile(new URL('main-study-timeline.js', audioRoot), `export const mainStudy = ${JSON.stringify(timeline, null, 2)};\n`);
+console.log(`Built ${opening.length} opening clips, ${pcm.length} phase cues and the outro for ${plan.cycles} complete cycles.`);

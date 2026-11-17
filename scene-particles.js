@@ -1,6 +1,6 @@
 const particleCount = 72;
 const frameInterval = Math.ceil(1000 / 24);
-const phaseLabels = { inhale: 'Einatmen', hold: 'Halten', exhale: 'Ausatmen' };
+const phaseLabels = { inhale: 'Einatmen', hold: 'Halten', exhale: 'Ausatmen', natural: 'Freie Atmung' };
 
 function particleSphere() {
   const step = Math.PI * (3 - Math.sqrt(5));

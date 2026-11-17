@@ -166,6 +166,8 @@ def check_scene_particles(browser, url):
     expect(preview).to_be_hidden()
     play.click()
     expect(preview).to_be_visible(timeout=5000)
+    expect(phase).to_have_text("Freie Atmung")
+    page.clock.fast_forward(160500)
     expect(phase).to_have_text("Einatmen")
     initial = diameter()
     assert initial > 0
@@ -211,7 +213,7 @@ def check_playback(browser, url):
         const start = source.start.bind(source);
         source.start = (...args) => {
           start(...args);
-          const observation = { offset: args[1], start: args[0], duration: args[2],
+          const observation = { offset: args[1], start: args[0], duration: args[2], bank: source.buffer.duration,
             ended: false, audible: () => {
               const samples = new Float32Array(analyser.fftSize);
               analyser.getFloatTimeDomainData(samples);
@@ -235,23 +237,39 @@ def check_playback(browser, url):
     page.locator("#preview-restart").click()
     page.wait_for_function("before => playedCues[before]?.audible()", arg=before, timeout=10000)
 
+    page.clock.install()
     assert page.goto(urlsplit(url)._replace(query="view=session").geturl()).ok
     play = page.locator("#quest-play")
+    progress = page.locator("#quest-progress")
     expect(play).to_have_text("Starten")
     assert page.evaluate("playedCues.length") == 0
     play.click()
     page.wait_for_function("playedCues[0]?.audible()", timeout=10000)
-    page.wait_for_function("playedCues[4]?.audible()", timeout=20000)
-    assert page.evaluate("playedCues.slice(0, 5).map(cue => Math.floor(cue.offset / 4) * 4)") == [0, 64, 28, 68, 4]
-    assert page.evaluate("playedCues.slice(1, 5).every((cue, i) => "
-                         "Math.abs(cue.start - (playedCues[0].start + playedCues[0].duration + i * 4)) < .01)")
-    play.click()
-    expect(play).to_have_text("Fortsetzen")
-    page.wait_for_function("playedCues.every(cue => cue.ended)")
-    before = page.evaluate("playedCues.length")
-    play.click()
-    page.wait_for_function("before => playedCues[before]?.offset > playedCues[4].offset", arg=before)
-    page.locator("#quest-finish").click()
+    assert page.evaluate("playedCues[0].bank === 180 && playedCues[0].offset < 1 && playedCues[0].duration > 50")
+
+    def resume_at(target_ms, bank, offset_min, offset_max):
+        # The simulated Quest clock can jump. Restart Web Audio from the reported position on resume.
+        page.clock.fast_forward(target_ms - progress.evaluate("bar => Math.floor(bar.value)"))
+        play.click()
+        expect(play).to_have_text("Fortsetzen")
+        page.wait_for_function("playedCues.every(cue => cue.ended)")
+        before = page.evaluate("playedCues.length")
+        play.click()
+        page.wait_for_function("before => playedCues[before]?.audible()", arg=before, timeout=10000)
+        cue = page.evaluate("i => playedCues[i]", before)
+        assert cue["bank"] == bank and offset_min <= cue["offset"] < offset_max, cue
+        return before
+
+    resume_at(56000, 180, 54.83, 60)
+    resume_at(120000, 180, 119.04, 124)
+    first = resume_at(161000, 72, 0, 4)
+    page.wait_for_function("first => playedCues[first + 4]?.audible()", arg=first, timeout=20000)
+    assert page.evaluate("i => playedCues.slice(i, i + 5).map(cue => Math.floor(cue.offset / 4) * 4)", first) == [0, 64, 28, 68, 4]
+    assert page.evaluate("i => playedCues.slice(i + 1, i + 5).every((cue, j) => "
+                         "Math.abs(cue.start - (playedCues[i].start + playedCues[i].duration + j * 4)) < .01)", first)
+    resume_at(889000, 180, 168, 174)
+    page.clock.fast_forward(12000)
+    expect(page.locator("#quest-playback")).to_be_hidden()
     page.wait_for_function("playedCues.every(cue => cue.ended)")
     page.close()
 

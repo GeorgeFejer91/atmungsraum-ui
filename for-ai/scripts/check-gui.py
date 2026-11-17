@@ -140,6 +140,9 @@ def measure_views(page, flow, url, style_text):
         style_text()
         expect(page.locator(selector)).to_be_visible()
         capture("review link: " + view)
+    page.locator("#quest-play").click()
+    expect(page.locator("#scene-breath-phase")).to_have_text("Freie Atmung")
+    capture("main-study opening")
     return samples
 
 
