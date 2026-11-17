@@ -62,18 +62,55 @@ async function writeFlac(name, samples) {
 const sha256 = await writeFlac('main-study-cues.flac', pcm);
 await writeFile(new URL('main-study-cues.json', audioRoot), JSON.stringify({ cue_seconds: cueSeconds, sha256, pools }, null, 2) + '\n');
 
-const opening = plan.events.filter(event => event.id.startsWith('instruction_')).slice(0, 2).map(event => ({
-  id: event.asset, startFrame: event.offset_frames, frames: event.duration_frames, offsetFrame: event.offset_frames,
-}));
-const narration = opening.map(cue => wavePcm(files.get('assets/audio/scenarios/haupt-15/' + plan.audio_assets[cue.id].file), cue.frames));
+// Cuts are in source milliseconds, with eyes closed first and eyes open second.
+const listeningBreaks = [
+  { after: [14100, 12140], resumeAt: 28000 }, // Settle into natural breathing and listen.
+  { after: [25580, 25320], resumeAt: 57000 }, // Notice the sound of inhaling and exhaling.
+  { after: [44950, 49850], resumeAt: 93000 }, // Return attention after thoughts wander.
+];
+
+function extendControl(samples, control, frames) {
+  const clips = [];
+  let lastFrame = 0;
+  let addedFrames = 0;
+  for (const { after, resumeAt } of listeningBreaks) {
+    const cut = rate * after[control] / 1000;
+    const silence = rate * resumeAt / 1000 - cut - addedFrames;
+    const margin = rate / 50;
+    if (cut <= lastFrame || cut + margin >= samples.length / 2 || silence <= 0) {
+      throw new Error('Invalid listening break');
+    }
+    for (let frame = cut - margin; frame < cut + margin; frame++) {
+      if (Math.abs(samples.readInt16LE(frame * 2)) > 128) throw new Error('Listening break overlaps audible source audio');
+    }
+    clips.push(samples.subarray(lastFrame * 2, cut * 2), Buffer.alloc(silence * 2));
+    addedFrames += silence;
+    lastFrame = cut;
+  }
+  const finalPause = frames - samples.length / 2 - addedFrames;
+  if (finalPause <= 0) throw new Error('No time remains for the final listening prompt');
+  clips.push(samples.subarray(lastFrame * 2), Buffer.alloc(finalPause * 2));
+  return Buffer.concat(clips);
+}
+
 const instructionId = 'main-study-instructions';
 const instructionFile = fileURLToPath(new URL(instructionId + '.mp3', audioRoot));
 const instructions = execFileSync('ffmpeg', ['-nostdin', '-v', 'error', '-i', instructionFile,
   '-ar', String(rate), '-ac', '1', '-f', 's16le', 'pipe:1'], { maxBuffer: 8 * 1024 * 1024, windowsHide: true });
-const instructionStart = narration.reduce((frames, clip) => frames + clip.length / 2, 0);
+const cycleStartFrame = 5 * 60 * rate;
+const controlFrames = (cycleStartFrame - instructions.length / 2) / 2;
+if (!Number.isSafeInteger(controlFrames) || controlFrames <= 0) throw new Error('Controls require equal whole-frame lengths');
+const opening = inventory.opening.slice(0, 2).map((id, i) => ({
+  id, startFrame: i * controlFrames, frames: controlFrames, offsetFrame: i * controlFrames,
+}));
+const narration = opening.map(({ id }, i) => {
+  const asset = plan.audio_assets[id];
+  const samples = wavePcm(files.get('assets/audio/scenarios/haupt-15/' + asset.file), asset.frames);
+  return extendControl(samples, i, controlFrames);
+});
+const instructionStart = 2 * controlFrames;
 opening.push({ id: instructionId, startFrame: instructionStart, frames: instructions.length / 2, offsetFrame: instructionStart });
 narration.push(instructions);
-const cycleStartFrame = instructionStart + instructions.length / 2;
 const guidedFrames = 10 * 60 * rate;
 const cycles = Math.floor(guidedFrames / (4 * cueFrames));
 const closingStartFrame = cycleStartFrame + guidedFrames;
@@ -81,7 +118,7 @@ const outroDirectory = join(sourceRoot, 'assets/audio/box-breathing/de/soft-v2')
 const outro = JSON.parse(await readFile(join(outroDirectory, 'outro.json')));
 const outroWav = await readFile(join(outroDirectory, outro.file));
 if (createHash('sha256').update(outroWav).digest('hex') !== outro.sha256
-  || closingStartFrame + outro.frames > plan.total_frames) {
+  || closingStartFrame !== plan.total_frames) {
   throw new Error('Unexpected main-study outro asset');
 }
 narration.push(wavePcm(outroWav, outro.frames));

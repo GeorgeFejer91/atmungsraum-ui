@@ -1,5 +1,5 @@
 import { MockECG } from './mock-ecg.js';
-import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, runLengths, sceneBreathingAt } from './simulation.js?v=ten-minute-guidance';
+import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, mainStudyOutroSeconds, runLengths, sceneBreathingAt } from './simulation.js?v=matched-controls';
 import { joinQuest } from './vendor/atmungsraum/quest-gateway.js';
 import { pairPhone } from './vendor/atmungsraum/quest-pairing.js';
 import { createMockRecordings } from './mock-recordings.js';
@@ -34,7 +34,7 @@ export function createMockQuest(review) {
   }
   const discovery = { state: 'ready', owner, endpoints: [endpoint], pairing: 1 };
   let fixture = 'normal', phase = 'IDLE', condition = 'condition-a', generation = 0, witness = 0;
-  let speed = 1, run, sessionGrant, recovery, kioskRevision = 1, initialSession;
+  let speed = 1, run, outro, sessionGrant, recovery, kioskRevision = 1, initialSession;
   let connected = true, ecg = true, acc = true, selected = true, scanned = false, polarRevision = 1;
 
   function setupStatus(now) {
@@ -121,7 +121,15 @@ export function createMockQuest(review) {
   }
 
   async function advance(now) {
-    if (phase === 'RUNNING' && elapsedRun(run, now) >= run.duration) await finish(now);
+    if (phase !== 'RUNNING' || elapsedRun(run, now) < run.duration) return;
+    if (run.scenario === 'haupt-15' && run.speed === 1) {
+      outro = { key: runAudioKey(), started: run.started + (run.duration - run.elapsed) * 1000, duration: run.duration };
+    }
+    await finish(now);
+  }
+
+  function runAudioKey() {
+    return `run/${generation}/${run.started}`;
   }
 
   function selectInput(op, now) {
@@ -168,6 +176,7 @@ export function createMockQuest(review) {
   }
 
   async function armRun(scenario, selectedCondition) {
+    outro = null;
     phase = 'ARMING';
     await recordings.begin(scenario, selectedCondition);
     condition = selectedCondition;
@@ -278,13 +287,22 @@ export function createMockQuest(review) {
       const now = performance.now();
       if (phase === 'RUNNING' && run.scenario !== 'free-exploration' && run.speed === 1) {
         const seconds = elapsedRun(run, now);
-        return seconds < run.duration ? { key: `run/${generation}/${run.started}`, seconds, mainStudy: run.scenario === 'haupt-15' } : null;
+        const mainStudy = run.scenario === 'haupt-15';
+        return mainStudy || seconds < run.duration ? { key: runAudioKey(), seconds, mainStudy } : null;
+      }
+      if (outro) {
+        const elapsed = (now - outro.started) / 1000;
+        if (elapsed < mainStudyOutroSeconds) {
+          return { key: outro.key, seconds: outro.duration + elapsed, mainStudy: true };
+        }
+        outro = null;
       }
       if (calibrationRequested && phase === 'IDLE' && setup.started !== null && !recovery && fixture !== 'setup-error') {
         return { key: `calibration/${setup.g}`, seconds: (now - setup.started) / 1000 };
       }
       return null;
     },
+    stopOutro() { outro = null; },
     savedPair: { ...owner, endpoint, enrollment, build: fingerprint },
     services: {
       selectQuest: async () => {

@@ -87,8 +87,8 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   expansion, contraction, pause, missing signal and reduced motion. At a
   320 × 640 emulated viewport, the draw loop ran at 23.8 updates per second
   with 0.2 ms per update at the 95th percentile across 101 updates.
-- [x] Play both control recordings, box-breathing instructions, ten minutes
-  of guided breathing and the recorded outro within the 15-minute Haupt-Runde.
+- [x] Play both control recordings and the box-breathing instruction in five
+  minutes. Run ten minutes of guided breathing and play the outro after the timer.
   Chrome verifies playback, pause, resume and automatic end.
 - [x] Play the German instruction before the first calibration attempt and
   offer its transcript. Chrome verified playback completion, cancellation,
@@ -151,12 +151,13 @@ The playground also plays the supplied German calibration instruction. The
 controller waits for playback to end before sending the first calibration
 command. Cancelled or unavailable audio leaves calibration unstarted; retries
 after a calibration attempt go straight to the breathing cycles.
-The 15-minute Haupt-Runde plays both control recordings, the supplied German
-box-breathing instruction, ten minutes of guided breathing, and the recorded
-outro. The guided section ends with a four-second inhale and a four-second
-exhale after 37 full cycles. Free breathing continues from the start of the
-outro until the session ends. Audio and the particle preview share the
-main-study timeline and simulated elapsed time.
+The 15-minute Haupt-Runde opens with equal eyes-closed and eyes-open controls,
+then the supplied German box-breathing instruction. Prompts in the controls
+resume at the same elapsed times after quiet periods for attending to breath.
+The opening lasts five minutes. Guided breathing runs for ten minutes and ends
+with a four-second inhale and a four-second exhale after 37 full cycles. The
+outro plays after the timer ends at normal speed. Audio and the particle
+preview share the main-study timeline and simulated elapsed time.
 At normal speed the playground loads the audio before dispatching Start.
 The session status shows loading or allows retry if the audio is unavailable.
 `scene-particles.js` draws 72 particles from the simulated Polar breathing

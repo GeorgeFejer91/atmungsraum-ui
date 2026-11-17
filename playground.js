@@ -1,7 +1,7 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
-import { createMockQuest } from './mock-quest.js?v=ten-minute-guidance';
+import { createMockQuest } from './mock-quest.js?v=matched-controls';
 import { openDialog } from './dialogs.js';
-import { mountBreathingAudio, playCalibrationPrelude } from './playground-audio.js?v=ten-minute-guidance';
+import { mountBreathingAudio, playCalibrationPrelude } from './playground-audio.js?v=matched-controls';
 import { mountSceneParticles } from './scene-particles.js?v=main-study-sequence';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
 import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=audio-start';
@@ -58,6 +58,7 @@ export function mountPlayground() {
     const button = byId(id);
     button.addEventListener('click', () => {
       if (button.hidden || button.disabled) return;
+      quest.stopOutro();
       if (id === 'preview-restart' || id === 'preview-controller') calibrationRequested = true;
       audio.unlock();
     });

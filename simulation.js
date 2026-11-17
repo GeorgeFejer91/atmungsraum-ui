@@ -1,4 +1,4 @@
-import { mainStudy } from './assets/audio/main-study-timeline.js?v=ten-minute-guidance';
+import { mainStudy } from './assets/audio/main-study-timeline.js?v=matched-controls';
 
 export const ecgRate = 130;
 const packetLength = ecgRate * 2;
@@ -59,6 +59,7 @@ export const runLengths = {
   'free-exploration': Infinity,
   'haupt-15': mainStudy.durationFrames / mainStudy.sampleRate,
 };
+export const mainStudyOutroSeconds = mainStudy.closing.frames / mainStudy.sampleRate;
 
 export function elapsedRun(run, now) {
   return Math.min(run.duration, run.elapsed + (run.started === null ? 0 : Math.max(0, now - run.started) * run.speed / 1000));

@@ -224,7 +224,7 @@ def check_scene_particles(browser, url):
     play.click()
     expect(preview).to_be_visible(timeout=5000)
     expect(phase).to_have_text("Freie Atmung")
-    page.clock.fast_forward(162500)
+    page.clock.fast_forward(298500)
     expect(phase).to_have_text("Freie Atmung")
     page.clock.fast_forward(2100)
     expect(phase).to_have_text("Einatmen")
@@ -328,10 +328,10 @@ def check_playback(browser, url):
     play.click()
     page.wait_for_function("playedCues[0]?.audible()", timeout=10000)
     narration_bank = page.evaluate("playedCues[0].bank")
-    assert 183.35 < narration_bank < 183.38
-    assert page.evaluate("playedCues[0].offset < 1 && playedCues[0].duration > 50")
+    assert narration_bank == 319
+    assert page.evaluate("playedCues[0].offset < 1 && playedCues[0].duration > 126")
 
-    def resume_at(target_ms, bank=None, offset_min=0, offset_max=0):
+    def resume_at(target_ms, bank, offset_min, offset_max):
         # The simulated Quest clock can jump. Restart Web Audio from the reported position on resume.
         page.clock.fast_forward(target_ms - progress.evaluate("bar => Math.floor(bar.value)"))
         play.click()
@@ -340,38 +340,33 @@ def check_playback(browser, url):
         before = page.evaluate("playedCues.length")
         play.click()
         expect(play).to_have_text("Pause")
-        if bank is None:
-            return before
         page.wait_for_function("before => playedCues[before]?.audible()", arg=before, timeout=10000)
         cue = page.evaluate("i => playedCues[i]", before)
         assert cue["bank"] == bank and offset_min <= cue["offset"] < offset_max, cue
         return before
 
-    resume_at(56000, narration_bank, 54.83, 60)
-    resume_at(120000, narration_bank, 119.04, 124)
-    resume_at(162000, narration_bank, 161, 164)
-    first = resume_at(165000, 72, 0, 4)
+    resume_at(130000, narration_bank, 127.33, 132)
+    resume_at(257000, narration_bank, 254.67, 259)
+    first = resume_at(301000, 72, 0, 4)
     page.wait_for_function("first => playedCues[first + 4]?.audible()", arg=first, timeout=20000)
     assert page.evaluate("i => playedCues.slice(i, i + 5).map(cue => Math.floor(cue.offset / 4) * 4)", first) == [0, 64, 28, 68, 4]
     assert page.evaluate("i => playedCues.slice(i + 1, i + 5).every((cue, j) => "
                          "Math.abs(cue.start - (playedCues[i].start + playedCues[i].duration + j * 4)) < .01)", first)
-    resume_at(757500, 72, 8, 12)
+    resume_at(893500, 72, 8, 12)
     expect(page.locator("#scene-breath-phase")).to_have_text("Einatmen")
-    last = resume_at(761000, 72, 32, 36)
+    last = resume_at(897500, 72, 32, 36)
     expect(page.locator("#scene-breath-phase")).to_have_text("Ausatmen")
-    page.wait_for_function("i => playedCues[i + 1]?.bank > 180", arg=last)
+    page.wait_for_function("i => playedCues[i + 1]?.bank === 319", arg=last)
     assert page.evaluate("""i => {
       const [exhale, outro] = playedCues.slice(i, i + 2);
       return Math.abs(outro.start - (exhale.start + exhale.duration)) < .01
-        && Math.abs(outro.offset - 164.362) < .01;
+        && Math.abs(outro.offset - 300) < .01;
     }""", last)
-    resume_at(775000, narration_bank, 173, 178)
-    expect(page.locator("#scene-breath-phase")).to_have_text("Freie Atmung")
-    count = resume_at(889000)
-    page.clock.fast_forward(12000)
     expect(page.locator("#quest-playback")).to_be_hidden()
-    assert page.evaluate("playedCues.length") == count
+    page.wait_for_function("i => playedCues[i + 1]?.audible()", arg=last, timeout=14000)
+    page.clock.fast_forward(20000)
     page.wait_for_function("playedCues.every(cue => cue.ended)")
+    assert page.evaluate("playedCues.length") == last + 2
     page.close()
 
 

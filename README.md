@@ -80,10 +80,12 @@ connected Quest owns its own audio.
 
 **Haupt-Runde** opens with the eyes-closed and eyes-open breathing checks,
 then the [German box-breathing instructions](assets/audio/main-study-instructions.txt).
-The first guided inhale starts about 2 minutes 44 seconds into the run.
-Guided breathing lasts ten minutes, with 37 complete cycles followed by a
-four-second inhale and a four-second exhale. Free breathing resumes as the
-outro starts at about 12 minutes 44 seconds. The session ends at 15 minutes.
+Each control lasts 2:07.339 and has pauses for listening to natural breathing,
+noticing the inhale and exhale, returning attention, and continuing to listen.
+The controls and instructions take exactly five minutes together. Guided
+breathing runs from 5:00 to 15:00, with 37 complete cycles followed by a
+four-second inhale and a four-second exhale. The recorded outro plays after
+the timer ends.
 If the audio fails to load, select **Starten** again.
 
 ## Edit and check

@@ -1,5 +1,5 @@
-import { mainStudy } from './assets/audio/main-study-timeline.js?v=ten-minute-guidance';
-import { breathPhaseSlot } from './simulation.js?v=ten-minute-guidance';
+import { mainStudy } from './assets/audio/main-study-timeline.js?v=matched-controls';
+import { breathPhaseSlot } from './simulation.js?v=matched-controls';
 
 export function playCalibrationPrelude(media, signal) {
   return new Promise(resolve => {
