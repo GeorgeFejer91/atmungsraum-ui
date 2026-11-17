@@ -4,6 +4,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import re
 from threading import Thread
+from time import monotonic
 from urllib.parse import urlsplit
 
 from playwright.sync_api import expect, sync_playwright
@@ -50,6 +51,14 @@ def finish_prelude(page):
     page.locator("#preview-instruction-audio").evaluate("audio => { audio.pause(); audio.dispatchEvent(new Event('ended')); }")
 
 
+def wait_for_cue_downloads(page):
+    # Finish the real downloads before advancing past their deadline on the test clock.
+    deadline = monotonic() + 15
+    while page.pending_cue_downloads and monotonic() < deadline:
+        page.wait_for_timeout(25)
+    assert not page.pending_cue_downloads, page.pending_cue_downloads
+
+
 def collect_calibration(page, button="#preview-calibrate"):
     page.locator(button).click()
     if button == "#preview-calibrate":
@@ -57,6 +66,7 @@ def collect_calibration(page, button="#preview-calibrate"):
     expect(page.locator("#preview-progress")).to_be_visible()
     expect(page.locator("#preview-continue")).to_be_hidden()
     expect(page.locator("#preview-actual-circle")).to_be_visible()
+    wait_for_cue_downloads(page)
     page.clock.fast_forward(49000)
     expect(page.locator("#preview-continue")).to_be_enabled()
 
@@ -85,6 +95,8 @@ def start_page(browser, url, width=390, height=844, clock=False):
     page = browser.new_page(viewport={"width": width, "height": height}, accept_downloads=True)
     if clock:
         page.clock.install()
+        page.pending_cue_downloads = {"main-study-cues.json", "main-study-cues.flac"}
+        page.on("requestfinished", lambda req: page.pending_cue_downloads.discard(urlsplit(req.url).path.rsplit("/", 1)[-1]))
     origin = urlsplit(url).netloc
     errors = []
     page.on("pageerror", lambda exc: errors.append(str(exc)))

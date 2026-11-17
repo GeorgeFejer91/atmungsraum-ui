@@ -98,6 +98,7 @@ def measure_views(page, flow, url, style_text):
     expect(page.locator("#preview-restart")).to_be_enabled()
     capture("calibration interrupted")
     flow["set_fixture"](page, "calibration-fail")
+    flow["wait_for_cue_downloads"](page)
     page.clock.fast_forward(49000)
     expect(page.locator("#preview-status")).to_contain_text("Calibration failed")
     expect(page.locator("#preview-continue")).to_be_hidden()
