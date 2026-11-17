@@ -82,6 +82,10 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
 - [x] Rotate the newer main-study voice pool through the preview. The decoded
   cues retain the original recorded breath layer under each inhale and exhale.
   Chrome verified the phase boundaries, change of take, and pause and resume.
+- [x] Show a coupled particle sphere during scene playback. Chrome verified
+  expansion, contraction, pause, missing signal and reduced motion. At a
+  320 × 640 emulated viewport, the draw loop ran at 23.8 updates per second
+  with 0.2 ms per update at the 95th percentile across 101 updates.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 
@@ -131,6 +135,10 @@ identity and a dedicated browser cache. Requests stay on the page's origin.
 `playground-audio.js` follows the simulated playback state and the Quest loop's
 four-phase timing. It rotates through the newer main-study voice takes and
 plays the recorded breath sound beneath each inhale and exhale cue.
+`scene-particles.js` draws 72 particles from the simulated Polar breathing
+signal. The radius follows the Quest configuration's 1 to 2 metre range in
+proportion, with sine-shaped transitions and both holds. The view caps
+animation at 24 updates per second and stops drawing when paused or hidden.
 See [README](../README.md) for transferring design changes to the original app.
 
 Upstream visuals are pinned to `3f8d7c8befa3c13d1e8f574e82082468ba5128f7`.

@@ -1,5 +1,5 @@
 import { MockECG } from './mock-ecg.js';
-import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, runLengths } from './simulation.js?v=2';
+import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, runLengths, sceneBreathingAt } from './simulation.js?v=scene-particles';
 import { joinQuest } from './vendor/atmungsraum/quest-gateway.js';
 import { pairPhone } from './vendor/atmungsraum/quest-pairing.js';
 import { createMockRecordings } from './mock-recordings.js';
@@ -266,6 +266,10 @@ export function createMockQuest(review) {
     return fixture === 'bluetooth-off' ? { state: 'bluetooth-off' } : discovery;
   }
   return {
+    sceneBreathing(now) {
+      if (!run || !connected || !acc || fixture === 'signal-loss' || !['RUNNING', 'PAUSED'].includes(phase)) return null;
+      return sceneBreathingAt(elapsedRun(run, now) * 1000);
+    },
     audioPlayback(calibrationRequested) {
       const now = performance.now();
       if (phase === 'RUNNING' && run.scenario !== 'free-exploration' && run.speed === 1) {

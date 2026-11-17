@@ -48,6 +48,32 @@ main { display: grid; grid-template-rows: minmax(0, 1fr); min-width: 0; min-heig
 #quest-clock { font-size: 1.35rem; font-variant-numeric: tabular-nums; }
 #quest-playback { display: grid; gap: calc(var(--gap) / 2); min-width: 0; }
 #quest-progress { display: block; width: 100%; height: 12px; margin: 0; accent-color: #74c5f2; }
+#scene-particles {
+  display: grid;
+  justify-self: center;
+  inline-size: min(100%, 320px);
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: #091119;
+}
+#scene-particle-canvas {
+  display: block;
+  inline-size: 100%;
+  block-size: clamp(60px, min(42vw, calc(var(--usable-height) * .24)), 176px);
+  object-fit: contain;
+}
+#scene-particles figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px var(--gap);
+  padding: 4px 10px 6px;
+  font-size: .9rem;
+  text-align: start;
+}
+#scene-breath-phase { color: var(--muted); }
 .quest-body:has(#session-choices:not([hidden])) {
   display: flex;
   flex-direction: column;

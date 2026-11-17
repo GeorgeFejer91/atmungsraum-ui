@@ -30,6 +30,12 @@ pause, resume, and end the run using the app's controls. Timed scenarios show
 a progress bar and elapsed versus total time; free exploration shows elapsed
 time. Saved runs offer a synthetic CSV download.
 
+During playback, **Partikelvorschau** shows a small coupled particle sphere
+driven by the simulated Polar breathing signal. It expands during inhale,
+holds, and contracts during exhale. Pause freezes the sphere. If the breathing
+signal drops, the window shows **Kein Atemsignal**. Reduced motion keeps a
+static sphere with the current phase label.
+
 Open **Simulation** to try Quest pairing, disconnect the Polar, drop its ECG
 signal, exercise a failed calibration, audio recovery or an older APK state,
 accelerate the run clock, or return to the connected starting state.

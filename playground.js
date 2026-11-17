@@ -1,7 +1,8 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
-import { createMockQuest } from './mock-quest.js?v=review-links';
+import { createMockQuest } from './mock-quest.js?v=scene-particles';
 import { openDialog } from './dialogs.js';
 import { mountBreathingAudio } from './playground-audio.js?v=main-study-cues';
+import { mountSceneParticles } from './scene-particles.js';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
 import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=review-links';
 import { showBluetooth, showOfflineChecks } from './connectivity.js?v=header-actions';
@@ -45,6 +46,7 @@ export function mountPlayground() {
 
   const preview = byId('breathing-preview');
   const quest = createMockQuest(entry);
+  const particles = mountSceneParticles(byId('scene-particles'), quest.sceneBreathing);
   let calibrationRequested = false, questAvailable = false;
   const audio = mountBreathingAudio(() => questAvailable ? quest.audioPlayback(calibrationRequested) : null);
   for (const id of ['preview-calibrate', 'preview-restart', 'preview-controller', 'quest-play']) {
@@ -58,6 +60,7 @@ export function mountPlayground() {
   let focusReview = true;
   function onPaint({ status, unknown }) {
     questAvailable = Boolean(status) && !unknown;
+    particles.update(questAvailable ? status.p : null);
     if (preview.hidden) calibrationRequested = false;
     audio.update();
     if (!focusReview || !questAvailable) return;

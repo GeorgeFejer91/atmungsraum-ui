@@ -1,6 +1,7 @@
 export const ecgRate = 130;
 const packetLength = ecgRate * 2;
 const clockHz = 1_000_000_000;
+const scenePhases = ['inhale', 'hold', 'exhale', 'hold'];
 
 export function ecgPacket(samples, sourceRate, timeMs, gaps = false) {
   const last = Math.floor(timeMs * ecgRate / 1000);
@@ -27,6 +28,12 @@ export function breathVolumeAt(timeMs) {
   if (phaseTime < 8000) return 1;
   if (phaseTime < 12000) return 1 - (phaseTime - 8000) / 4000;
   return 0;
+}
+
+export function sceneBreathingAt(timeMs) {
+  const phase = Math.floor((timeMs % 16000) / 4000);
+  const volume = (1 - Math.cos(Math.PI * breathVolumeAt(timeMs))) / 2;
+  return { phase: scenePhases[phase], radiusM: 1 + volume };
 }
 
 export const runLengths = {

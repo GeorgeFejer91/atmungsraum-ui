@@ -1,4 +1,4 @@
-import { mountPlayground } from './playground.js?v=main-study-cues';
+import { mountPlayground } from './playground.js?v=scene-particles';
 import { mountDialogs } from './dialogs.js';
 
 const root = document.documentElement;

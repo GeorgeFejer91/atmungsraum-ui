@@ -140,6 +140,65 @@ def check_review_links(browser, url):
         page.close()
 
 
+def check_scene_particles(browser, url):
+    session_url = urlsplit(url)._replace(query="view=session", fragment="").geturl()
+    page, errors = start_page(browser, session_url, clock=True)
+    preview = page.get_by_role("figure", name="Partikelvorschau")
+    canvas = page.locator("#scene-particle-canvas")
+    phase = page.locator("#scene-breath-phase")
+    play = page.locator("#quest-play")
+
+    def diameter():
+        return canvas.evaluate("""canvas => {
+          const { width, height } = canvas;
+          const { data } = canvas.getContext('2d').getImageData(0, 0, width, height);
+          let left = width, right = -1;
+          for (let i = 3; i < data.length; i += 4) {
+            if (data[i]) {
+              const x = ((i - 3) / 4) % width;
+              left = Math.min(left, x);
+              right = Math.max(right, x);
+            }
+          }
+          return Math.max(0, right - left + 1);
+        }""")
+
+    expect(preview).to_be_hidden()
+    play.click()
+    expect(preview).to_be_visible(timeout=5000)
+    expect(phase).to_have_text("Einatmen")
+    initial = diameter()
+    assert initial > 0
+    page.clock.fast_forward(4100)
+    expect(phase).to_have_text("Halten")
+    expanded = diameter()
+    assert expanded > initial + 20, (initial, expanded)
+    page.clock.fast_forward(5800)
+    expect(phase).to_have_text("Ausatmen")
+    assert diameter() < expanded - 20
+    play.click()
+    expect(play).to_have_text("Fortsetzen")
+    frozen = canvas.evaluate("canvas => canvas.toDataURL()")
+    page.clock.fast_forward(4500)
+    assert canvas.evaluate("canvas => canvas.toDataURL()") == frozen
+    play.click()
+    expect(play).to_have_text("Pause")
+    set_fixture(page, "signal-loss")
+    expect(phase).to_have_text("Kein Atemsignal")
+    assert diameter() == 0
+    set_fixture(page, "normal")
+    expect(phase).to_have_text(re.compile(r"Einatmen|Halten|Ausatmen"))
+    page.emulate_media(reduced_motion="reduce")
+    page.clock.fast_forward(500)
+    still = canvas.evaluate("canvas => canvas.toDataURL()")
+    page.clock.fast_forward(5000)
+    assert canvas.evaluate("canvas => canvas.toDataURL()") == still
+    page.locator("#quest-finish").click()
+    expect(preview).to_be_hidden()
+    assert not errors, errors
+    page.close()
+
+
 def check_playback(browser, url):
     page = browser.new_page()
     page.add_init_script("""(() => {
@@ -437,6 +496,8 @@ def main():
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(channel="chrome")
             check_review_links(browser, url)
+            check_scene_particles(browser, url)
+            print("PASS particle expansion, contraction, pause, signal loss, and reduced motion", flush=True)
             check_playback(browser, url)
             print("PASS direct review URLs and audible calibration/session playback with recovery and pause/resume", flush=True)
             check_pairing(browser, url)

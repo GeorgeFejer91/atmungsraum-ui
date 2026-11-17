@@ -14,9 +14,9 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/app-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./style.css?v=header-actions">
+  <link rel="stylesheet" href="./style.css?v=scene-particles">
   <script type="module" src="./pwa-install.js?v=2"></script>
-  <script type="module" src="./app.js?v=main-study-cues"></script>
+  <script type="module" src="./app.js?v=scene-particles"></script>
 </head>
 <body>
   <header id="corner-actions" aria-label="Geräte und Aktionen">
@@ -284,6 +284,13 @@
           <button id="quest-pairing-cancel" type="button"><span data-measure>Abbrechen</span></button>
         </div>
         <button id="quest-find" type="button" aria-describedby="quest-status" hidden><span data-measure>Mit Bluetooth verbinden</span></button>
+        <figure id="scene-particles" aria-labelledby="scene-particles-title" hidden>
+          <canvas id="scene-particle-canvas" width="240" height="144" aria-hidden="true"></canvas>
+          <figcaption>
+            <span id="scene-particles-title" data-measure>Partikelvorschau</span>
+            <span id="scene-breath-phase" data-measure data-measure-sample="Kein Atemsignal" data-live-value></span>
+          </figcaption>
+        </figure>
         <div id="quest-playback" hidden>
           <p id="quest-clock" data-measure data-measure-sample="88:88 / 88:88" data-live-value>00:00</p>
           <progress id="quest-progress" aria-label="Szenariofortschritt" aria-describedby="quest-clock" value="0" hidden></progress>
