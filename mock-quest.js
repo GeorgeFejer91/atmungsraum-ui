@@ -1,5 +1,5 @@
 import { MockECG } from './mock-ecg.js';
-import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, mainStudyOutroSeconds, runLengths, sceneBreathingAt } from './simulation.js?v=matched-controls';
+import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, mainStudyOutroSeconds, runLengths, scenarioTimelines, sceneBreathingAt } from './simulation.js?v=probe-instructions';
 import { joinQuest } from './vendor/atmungsraum/quest-gateway.js';
 import { pairPhone } from './vendor/atmungsraum/quest-pairing.js';
 import { createMockRecordings } from './mock-recordings.js';
@@ -90,7 +90,7 @@ export function createMockQuest(review) {
       build: { v: 1, packaging_fingerprint: fingerprint },
       p: phase, h: phase === 'IDLE' ? 'vr-preparation' : 'vr-session', g: generation, r: 0,
       c: condition, rec: Boolean(run), ms: run ? Math.floor(elapsedRun(run, now) * 1000) : 0, pending: false,
-      ...(Number.isFinite(run?.duration) ? { duration_ms: run.duration * 1000 } : {}),
+      ...(Number.isFinite(run?.duration) ? { duration_ms: Math.round(run.duration * 1000) } : {}),
       participant_arm: 1, recenter: 1, ecg_preview: 1, recordings: 1, live_recording: 1, breath_setup: 1,
       a: ['track-ready', 'track-ready'], scenarios: Object.keys(runLengths),
       pi: { r: true, f: connected && ecg && acc && !lost },
@@ -275,9 +275,9 @@ export function createMockQuest(review) {
     return fixture === 'bluetooth-off' ? { state: 'bluetooth-off' } : discovery;
   }
   return {
-    needsMainStudyAudio(scenario) {
-      if (phase === 'ARMED') return run.scenario === 'haupt-15' && run.speed === 1;
-      return phase === 'IDLE' && scenario === 'haupt-15' && speed === 1;
+    scenarioToPrepare(scenario) {
+      if (phase === 'ARMED') return run.speed === 1 && scenarioTimelines[run.scenario] ? run.scenario : null;
+      return phase === 'IDLE' && speed === 1 && scenarioTimelines[scenario] ? scenario : null;
     },
     sceneBreathing(now) {
       if (!run || !connected || !acc || fixture === 'signal-loss' || !['RUNNING', 'PAUSED'].includes(phase)) return null;
@@ -287,13 +287,13 @@ export function createMockQuest(review) {
       const now = performance.now();
       if (phase === 'RUNNING' && run.scenario !== 'free-exploration' && run.speed === 1) {
         const seconds = elapsedRun(run, now);
-        const mainStudy = run.scenario === 'haupt-15';
-        return mainStudy || seconds < run.duration ? { key: runAudioKey(), seconds, mainStudy } : null;
+        return run.scenario === 'haupt-15' || seconds < run.duration
+          ? { key: runAudioKey(), seconds, scenario: run.scenario } : null;
       }
       if (outro) {
         const elapsed = (now - outro.started) / 1000;
         if (elapsed < mainStudyOutroSeconds) {
-          return { key: outro.key, seconds: outro.duration + elapsed, mainStudy: true };
+          return { key: outro.key, seconds: outro.duration + elapsed, scenario: 'haupt-15' };
         }
         outro = null;
       }

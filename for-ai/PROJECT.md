@@ -24,7 +24,8 @@ Simulation menu.
    **Restart Calibration** retries, and the controller option appears after
    two Quest-reported Polar attempts for the current participant setup.
 4. **VR scenario and session.** Show three illustrated square tiles on one
-   page: **Probe-Runde** (5 minutes), **Freie Erkundung** (end manually), and
+   page: **Probe-Runde** (instruction plus five minutes of guided breathing),
+   **Freie Erkundung** (end manually), and
    **Haupt-Runde** (15 minutes, one fixed condition). Select a tile and press
    **Starten**. Timed runs show elapsed and total time and a progress bar above
    the pause and end controls. The bar holds while paused. Free exploration

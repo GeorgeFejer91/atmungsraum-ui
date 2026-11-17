@@ -27,7 +27,8 @@ before any calibration data is collected. **Restart Calibration** retries the
 breathing cycles directly. Verify the particle response with the participant, then
 accept or restart. After two Polar attempts the operator can also switch to a VR
 controller and check its response. Accepting opens a single page with three
-illustrated scenario tiles: **Probe-Runde** (5 minutes), **Freie Erkundung**
+illustrated scenario tiles: **Probe-Runde** (instruction plus five minutes
+of guided breathing), **Freie Erkundung**
 (end manually), and **Haupt-Runde** (15 minutes, one fixed condition). Start,
 pause, resume, and end the run using the app's controls. Timed scenarios show
 a progress bar and elapsed versus total time; free exploration shows elapsed

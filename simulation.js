@@ -1,6 +1,8 @@
 import { mainStudy } from './assets/audio/main-study-timeline.js?v=matched-controls';
+import { probeStudy } from './assets/audio/probe-timeline.js?v=probe-instructions';
 
 export const ecgRate = 130;
+export const scenarioTimelines = { 'haupt-15': mainStudy, 'probe-5': probeStudy };
 const packetLength = ecgRate * 2;
 const clockHz = 1_000_000_000;
 const scenePhases = ['inhale', 'hold', 'exhale', 'hold'];
@@ -39,15 +41,16 @@ export function breathPhaseSlot(phase, completeCycles = Infinity) {
 
 export function sceneBreathingAt(timeMs, scenario) {
   let completeCycles;
-  if (scenario === 'haupt-15') {
-    const cycleStart = mainStudy.cycleStartFrame * 1000 / mainStudy.sampleRate;
-    const closingStart = mainStudy.closing.startFrame * 1000 / mainStudy.sampleRate;
+  const timeline = scenarioTimelines[scenario];
+  if (timeline) {
+    const cycleStart = timeline.cycleStartFrame * 1000 / timeline.sampleRate;
+    const closingStart = timeline.durationFrames * 1000 / timeline.sampleRate;
     if (timeMs < cycleStart || timeMs >= closingStart) {
       const naturalTime = timeMs < cycleStart ? timeMs - cycleStart : timeMs - closingStart;
       return { phase: 'natural', radiusM: 1 + (1 - Math.cos(2 * Math.PI * naturalTime / 12000)) / 2 };
     }
     timeMs -= cycleStart;
-    completeCycles = mainStudy.cycles;
+    completeCycles = timeline.cycles;
   }
   const slot = breathPhaseSlot(Math.floor(timeMs / 4000), completeCycles);
   const volume = (1 - Math.cos(Math.PI * breathVolumeAt(slot * 4000 + timeMs % 4000))) / 2;
@@ -55,7 +58,7 @@ export function sceneBreathingAt(timeMs, scenario) {
 }
 
 export const runLengths = {
-  'probe-5': 300,
+  'probe-5': probeStudy.durationFrames / probeStudy.sampleRate,
   'free-exploration': Infinity,
   'haupt-15': mainStudy.durationFrames / mainStudy.sampleRate,
 };

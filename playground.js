@@ -1,7 +1,7 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
-import { createMockQuest } from './mock-quest.js?v=matched-controls';
+import { createMockQuest } from './mock-quest.js?v=probe-instructions';
 import { openDialog } from './dialogs.js';
-import { mountBreathingAudio, playCalibrationPrelude } from './playground-audio.js?v=matched-controls';
+import { mountBreathingAudio, playCalibrationPrelude } from './playground-audio.js?v=probe-instructions';
 import { mountSceneParticles } from './scene-particles.js?v=main-study-sequence';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
 import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=audio-start';
@@ -104,7 +104,10 @@ export function mountPlayground() {
   const page = mountQuestRehearsal(participantIdentity, entry === 'pairing' ? undefined : quest.savedPair,
     { ...quest.services, storage, driveOptions: createMockDrive(), review: entry, onPaint,
       playCalibrationPrelude: playPrelude,
-      preparePlayback: (scenario, signal) => quest.needsMainStudyAudio(scenario) ? audio.prepareMainStudy(signal) : null });
+      preparePlayback: (scenario, signal) => {
+        const selection = quest.scenarioToPrepare(scenario);
+        return selection ? audio.prepareScenario(selection, signal) : null;
+      } });
   byId('simulation-state').addEventListener('change', event => {
     quest.setFixture(event.target.value);
     void checkBluetooth();

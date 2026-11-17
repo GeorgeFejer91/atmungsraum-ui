@@ -369,6 +369,28 @@ def check_playback(browser, url):
     page.clock.fast_forward(20000)
     page.wait_for_function("playedCues.every(cue => cue.ended)")
     assert page.evaluate("playedCues.length") == last + 2
+
+    assert page.goto(urlsplit(url)._replace(query="view=scenarios").geturl()).ok
+    expect(page.get_by_role("radio", name="Probe-Runde")).to_be_checked()
+    play.click()
+    expect(play).to_have_text("Pause")
+    expect(progress).to_have_attribute("max", "345401")
+    expect(page.locator("#scene-breath-phase")).to_have_text("Freie Atmung")
+    page.wait_for_function("playedCues[0]?.audible()", timeout=10000)
+    probe_bank = page.evaluate("playedCues[0].bank")
+    assert 45.40 < probe_bank < 45.41
+    before = resume_at(43000, probe_bank, 42.5, 45)
+    page.wait_for_function("i => playedCues[i + 1]?.bank === 72", arg=before)
+    assert page.evaluate("""i => {
+      const [instruction, inhale] = playedCues.slice(i, i + 2);
+      return Math.abs(inhale.start - (instruction.start + instruction.duration)) < .01
+        && Math.floor(inhale.offset / 4) === 0;
+    }""", before)
+    expect(page.locator("#scene-breath-phase")).to_have_text("Einatmen")
+    last = resume_at(343000, 72, 28, 32)
+    expect(page.locator("#scene-breath-phase")).to_have_text("Ausatmen")
+    expect(page.locator("#quest-playback")).to_be_hidden()
+    assert page.evaluate("playedCues.length") == last + 1
     page.close()
 
 

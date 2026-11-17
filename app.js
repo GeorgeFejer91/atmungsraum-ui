@@ -1,4 +1,4 @@
-import { mountPlayground } from './playground.js?v=matched-controls';
+import { mountPlayground } from './playground.js?v=probe-instructions';
 import { mountDialogs } from './dialogs.js';
 
 const root = document.documentElement;

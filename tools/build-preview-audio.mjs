@@ -8,10 +8,13 @@ const [source] = process.argv.slice(2);
 if (!source) throw new Error('Usage: node tools/build-preview-audio.mjs <main project atmungsraum directory>');
 
 const sourceRoot = resolve(source);
-const { buildMainStudyScenario, loadStudyInventory } = await import(pathToFileURL(join(sourceRoot, 'quest/main-study-audio.mjs')));
+const { buildMainStudyScenario, buildProbeStudyScenario, loadStudyInventory } = await import(pathToFileURL(join(sourceRoot, 'quest/main-study-audio.mjs')));
 const inventory = await loadStudyInventory(sourceRoot);
 const original = JSON.parse(await readFile(join(sourceRoot, 'audio/scenarios/haupt-15.json')));
-const { plan, files } = await buildMainStudyScenario(sourceRoot, original);
+const study = await buildMainStudyScenario(sourceRoot, original);
+const { plan, files } = study;
+const originalProbe = JSON.parse(await readFile(join(sourceRoot, 'audio/scenarios/probe-5.json')));
+const probe = await buildProbeStudyScenario(sourceRoot, originalProbe, study);
 const audioRoot = new URL('../assets/audio/', import.meta.url);
 const rate = plan.sample_rate;
 const cueSeconds = 4;
@@ -64,3 +67,13 @@ const timeline = { sampleRate: rate, durationFrames: plan.total_frames, opening,
   sha256: await writeFlac('main-study-narration.flac', narration) };
 await writeFile(new URL('main-study-timeline.js', audioRoot), `export const mainStudy = ${JSON.stringify(timeline, null, 2)};\n`);
 console.log(`Built ${opening.length} opening clips, ${pcm.length} phase cues and the outro for ten minutes of guided breathing.`);
+
+const probePrelude = probe.plan.pre_session_audio;
+const probeTimeline = {
+  sampleRate: rate,
+  durationFrames: probePrelude.duration_frames + probe.plan.total_frames,
+  cycleStartFrame: probePrelude.duration_frames,
+  opening: [{ id: 'probe-instructions', startFrame: 0, offsetFrame: 0, frames: probePrelude.duration_frames }],
+  sha256: await writeFlac('probe-narration.flac', [wavePcm(probe.files.get(probePrelude.path), probePrelude.duration_frames)]),
+};
+await writeFile(new URL('probe-timeline.js', audioRoot), 'export const probeStudy = ' + JSON.stringify(probeTimeline, null, 2) + ';\n');
