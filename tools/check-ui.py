@@ -115,7 +115,9 @@ def start_page(browser, url, width=390, height=844, clock=False):
 
 
 def enter_participant(page):
-    page.locator("#quest-participant").press("Enter")
+    participant = page.locator("#quest-participant")
+    expect(participant).to_be_visible()
+    participant.press("Enter")
     expect(page.locator("#participant-dialog")).to_be_visible()
     page.locator("#patient-surname").fill("tes")
     page.locator("#patient-age").fill("30")
