@@ -35,7 +35,7 @@ const labels = {
 };
 
 export function mountQuestRehearsal(participantIdentity, savedPair, services) {
-  const { selectQuest, readQuest, rediscoverQuest, joinQuest, pairPhone, driveOptions } = services;
+  const { selectQuest, readQuest, rediscoverQuest, joinQuest, pairPhone, driveOptions, review, onPaint } = services;
   const drive = mountQuestDrive(driveOptions);
   const questScreen = byId('quest');
   const preview = byId('breathing-preview');
@@ -86,7 +86,9 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   const participantFields = byId('patient-fields');
   const participantSubmit = byId('patient-next');
   const participantOutput = byId('patient-id');
-  let participantId = '';
+  let participantId = ['calibration', 'scenarios', 'session'].includes(review)
+    ? participantIdentity({ surnamePrefix: 'dem', age: '30', gender: 'other' }).id : '';
+  let reviewScenario = review === 'scenarios';
   let previewAccepted = '';
   let calibrationBaseline = null;
   const data = byId('quest-data');
@@ -206,6 +208,10 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     const setupComplete = Boolean(ready && participantComplete);
     const breath = breathing.update(rehearsal.gateway, { status, busy, pending, unknown }, setupComplete);
     if (!breath.actions.continue || previewAccepted !== breath.acceptance) previewAccepted = '';
+    if (reviewScenario && breath.actions.continue) {
+      reviewScenario = false;
+      previewAccepted = breath.acceptance;
+    }
     const selectionAllowed = idle && setupComplete && Boolean(previewAccepted) && breath.actions.continue;
     const recoveringSetup = breath.pending || breath.unknown || breath.recovering;
     const showPreview = idle && (participantComplete || recoveringSetup) && (setupComplete || !preview.hidden || breath.setup?.attempt > 0 || recoveringSetup)
@@ -315,6 +321,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     renderLive(performance.now());
     scheduleBreathExpiry();
     scheduleAnimation();
+    onPaint?.({ status, unknown });
   }
 
   function paintBreathingSetup(view, waiting) {

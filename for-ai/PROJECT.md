@@ -72,6 +72,10 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   boxes. Keep the full top row visible on every screen and above dialogs.
   Chrome verified direct access, keyboard activation, return focus, and
   single-row fit in the strict seven-viewport audit.
+- [x] Add [direct review links](../README.md) for the main views and play the
+  original Quest breathing loop during calibration and real-time timed runs.
+  Chrome verified direct links, rendered audio, recovery, pause and resume.
+  The strict audit passed 34 states across seven viewport cases.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 
@@ -118,6 +122,8 @@ original operator controller and clients in `vendor/atmungsraum/` to the in-page
 backends. The transport exercises the clients' signed and encrypted message
 validation. Discovery returns synthetic metadata. Recordings use a fixed demo
 identity and a dedicated browser cache. Requests stay on the page's origin.
+`playground-audio.js` uses the same four source WAVs as the selected Quest loop
+and follows the simulated playback state. It is separate from production audio.
 See [README](../README.md) for transferring design changes to the original app.
 
 Upstream visuals are pinned to `3f8d7c8befa3c13d1e8f574e82082468ba5128f7`.

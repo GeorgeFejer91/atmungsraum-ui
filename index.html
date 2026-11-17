@@ -16,7 +16,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="./style.css?v=header-actions">
   <script type="module" src="./pwa-install.js?v=2"></script>
-  <script type="module" src="./app.js?v=header-actions"></script>
+  <script type="module" src="./app.js?v=review-links"></script>
 </head>
 <body>
   <header id="corner-actions" aria-label="Geräte und Aktionen">
@@ -149,7 +149,11 @@
     <p id="simulation-note" class="sr-only">Geräte und Aufnahmen sind simuliert. Bitte nur Testdaten eingeben.</p>
     <label><span data-measure>Einstieg</span>
       <select id="simulation-screen">
-        <option value="connected">Quest und Polar verbunden</option>
+        <option value="connection">Quest und Polar verbunden</option>
+        <option value="participant">Teilnehmer-ID</option>
+        <option value="calibration">Atemkalibrierung</option>
+        <option value="scenarios">Szenarioauswahl</option>
+        <option value="session">Sitzungsansicht</option>
         <option value="pairing">Quest-Kopplung</option>
         <option value="history">Frühere Browser-Aufnahmen</option>
       </select>

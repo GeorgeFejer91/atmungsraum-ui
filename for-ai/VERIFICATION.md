@@ -1,9 +1,11 @@
 # Verification
 
-- `pnpm test` checks the fixture checksum, replay/wrap, waveform gaps,
-  session timing and synthetic CSV.
+- `pnpm test` checks the pinned ECG and Quest audio bytes, replay/wrap,
+  waveform gaps, session timing and synthetic CSV.
 - `python tools/check-ui.py` exercises the browser flow and its responsive
-  smoke checks. Use `--url` for the published site.
+  smoke checks, including direct review links and audible breathing playback
+  through calibration recovery and session pause/resume. Use `--url` for the
+  published site.
 - `for-ai/scripts/check-context.ps1 -RequireRemote` checks the control plane
   against the configured remote. Check the exact Pages run for the pushed SHA
   and compare the public entry, display scripts, manifest and fixture bytes.

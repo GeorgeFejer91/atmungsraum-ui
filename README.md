@@ -2,6 +2,22 @@
 
 [Open the live smartphone UI](https://georgefejer91.github.io/atmungsraum-ui/).
 
+Open a fresh demo directly at the screen you want to review:
+
+| Screen | Review link |
+| --- | --- |
+| Connection and setup | [Connected](https://georgefejer91.github.io/atmungsraum-ui/?view=connection) · [Pairing](https://georgefejer91.github.io/atmungsraum-ui/?pairing=1) |
+| Participant ID | [Teilnehmer-ID](https://georgefejer91.github.io/atmungsraum-ui/?view=participant) |
+| Breathing calibration | [Breathing Calibration](https://georgefejer91.github.io/atmungsraum-ui/?view=calibration) |
+| Scenario selection | [Szenarioauswahl](https://georgefejer91.github.io/atmungsraum-ui/?view=scenarios) |
+| Session controls | [Haupt-Runde ready to start](https://georgefejer91.github.io/atmungsraum-ui/?view=session) |
+| Earlier browser recordings | [Frühere Browser-Aufnahmen](https://georgefejer91.github.io/atmungsraum-ui/#daten) |
+
+These entry points are also listed under **Simulation → Einstieg**. The
+calibration, scenario and session links use a fictional participant to skip
+earlier steps. The session link opens a prepared run at 00:00 and waits for
+**Starten**.
+
 The playground opens with the Quest connected, this smartphone in control, and
 both Polar H10 streams ready. Enter and confirm a test participant ID to open
 breathing setup. **Start Calibration** runs the box breathing cue and shows the
@@ -38,9 +54,17 @@ It has 30 minutes of seeded data at 256 Hz with a nominal heart rate of 70 bpm.
 The browser verifies the SHA-256 in [the manifest](assets/ecg/mock-ecg.json)
 and replays it on the existing ECG view at a simulated 130 Hz. Voltage units
 are display-scaled and synthetic. The respiratory state and VR radius are
-separate deterministic fixtures. The playground plays brief tones at the
-simulated phase changes. A connected Quest owns its own stimulus audio.
+separate deterministic fixtures.
 [NeuroKit2 ECG simulation](https://neuropsychology.github.io/NeuroKit/functions/ecg.html#neurokit2.ecg_simulate)
+
+## Breathing audio
+
+The playground plays the original four German cues from the main project's
+[shared breathing loop](https://github.com/GeorgeFejer91/viscereality.org/blob/4dbd36459f1b9c713bd3290e8318776e86c4ae43/atmungsraum/audio/box-loop.json).
+The WAVs are copied unchanged and served from the playground. Playback begins
+on a calibration or session action. Both timed scenarios use the loop in the
+playground. Free exploration and accelerated runs are silent. A connected
+Quest owns its own audio; browser playback here is a simulation.
 
 ## Edit and check
 
@@ -52,10 +76,12 @@ simulated phase changes. A connected Quest owns its own stimulus audio.
   `mock-protocol.js`, `mock-recordings.js`, and `mock-drive.js` own the responses.
   `vendor/atmungsraum/` contains the original controller and clients. Its
   integration changes cover injected services, session storage, calibration
-  presentation, shared renderer paths, and the audit recording cache.
+  presentation, shared renderer paths, review entry points, and the audit
+  recording cache. `playground-audio.js` plays the pinned breathing cues.
 - Serve the folder with `python -m http.server 8000`. Run `pnpm test` for
-  deterministic data checks and `python tools/check-ui.py` for the Chrome and
-  Playwright browser checks. The latter accepts `--url` for deployed checks.
+  deterministic data and audio file integrity checks and `python tools/check-ui.py`
+  for the Chrome and Playwright browser checks. The latter accepts `--url` for
+  deployed checks.
 - Pages publishes the root of `main`. The committed Pretext runtime is used
   directly. Restore it with `pnpm install --frozen-lockfile` and `pnpm run vendor`.
 

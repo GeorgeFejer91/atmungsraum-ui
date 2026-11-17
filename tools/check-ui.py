@@ -118,6 +118,80 @@ def check_pairing(browser, url):
     page.close()
 
 
+def check_review_links(browser, url):
+    suffixes = (
+        ("connection", "#quest-participant"), ("participant", "#participant-dialog[open]"),
+        ("calibration", "#preview-calibrate"), ("scenarios", "#session-choices"), ("session", "#quest-playback"),
+    )
+    for view, selector in suffixes:
+        page = browser.new_page(viewport={"width": 390, "height": 844})
+        assert page.goto(urlsplit(url)._replace(query=f"view={view}", fragment="").geturl()).ok
+        expect(page.locator(selector)).to_be_visible(timeout=5000)
+        if view == "participant":
+            expect(page.locator("#patient-surname")).to_be_focused()
+            close_dialog(page)
+            expect(page.locator("#quest-participant")).to_be_focused()
+        if view == "scenarios":
+            expect(page.get_by_role("radio")).to_have_count(3)
+        if view == "session":
+            expect(page.locator("#quest-clock")).to_have_text("00:00 / 15:00")
+            expect(page.locator("#quest-play")).to_have_text("Starten")
+        layout_check(page)
+        page.close()
+
+
+def check_playback(browser, url):
+    page = browser.new_page()
+    page.add_init_script("""(() => {
+      window.cueLoops = [];
+      const create = AudioContext.prototype.createBufferSource;
+      AudioContext.prototype.createBufferSource = function () {
+        const source = create.call(this);
+        const analyser = this.createAnalyser();
+        source.connect(analyser);
+        const start = source.start.bind(source);
+        source.start = (...args) => {
+          start(...args);
+          const observation = { offset: args[1] || 0, duration: source.buffer.duration,
+            ended: false, audible: () => {
+              const samples = new Float32Array(analyser.fftSize);
+              analyser.getFloatTimeDomainData(samples);
+              return samples.some(sample => Math.abs(sample) > 0.001);
+            } };
+          source.addEventListener('ended', () => observation.ended = true);
+          window.cueLoops.push(observation);
+        };
+        return source;
+      };
+    })()""")
+    assert page.goto(url).ok
+    enter_participant(page)
+    expect(page.locator("#preview-calibrate")).to_be_enabled()
+    assert page.evaluate("cueLoops.length") == 0
+    page.locator("#preview-calibrate").click()
+    page.wait_for_function("cueLoops[0]?.duration === 16 && cueLoops[0].audible()", timeout=10000)
+    set_fixture(page, "setup-error")
+    page.wait_for_function("cueLoops[0].ended")
+    page.locator("#preview-restart").click()
+    page.wait_for_function("cueLoops[1]?.audible()", timeout=10000)
+
+    assert page.goto(urlsplit(url)._replace(query="view=session").geturl()).ok
+    play = page.locator("#quest-play")
+    expect(play).to_have_text("Starten")
+    assert page.evaluate("cueLoops.length") == 0
+    play.click()
+    page.wait_for_function("cueLoops[0]?.audible()", timeout=10000)
+    play.click()
+    expect(play).to_have_text("Fortsetzen")
+    page.wait_for_function("cueLoops[0].ended")
+    play.click()
+    page.wait_for_function("cueLoops[1]?.offset > cueLoops[0].offset")
+    page.locator("#quest-finish").click()
+    page.wait_for_function("cueLoops[1].ended")
+    assert page.evaluate("cueLoops.length") == 2
+    page.close()
+
+
 def check_reduced_viewport(browser, url):
     page, errors = start_page(browser, url)
     page.locator("#quest-participant").press("Enter")
@@ -357,6 +431,9 @@ def main():
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(channel="chrome")
+            check_review_links(browser, url)
+            check_playback(browser, url)
+            print("PASS direct review URLs and audible calibration/session playback with recovery and pause/resume", flush=True)
             check_pairing(browser, url)
             check_reduced_viewport(browser, url)
             full_flow(browser, url, args.image)

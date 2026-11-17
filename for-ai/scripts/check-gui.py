@@ -126,6 +126,12 @@ def measure_views(page, flow, url, style_text):
     expect(page.locator("#data-title")).to_be_visible()
     expect(page.locator('#corner-actions .check-icon[data-check="unconfirmed"]:visible')).to_have_count(4)
     capture("history")
+    for view, selector in (("participant", "#participant-dialog[open]"), ("calibration", "#preview-calibrate"),
+                           ("scenarios", "#session-choices"), ("session", "#quest-playback")):
+        page.goto(url + "?view=" + view)
+        style_text()
+        expect(page.locator(selector)).to_be_visible()
+        capture("review link: " + view)
     return samples
 
 

@@ -19,7 +19,7 @@ const inputByCommand = {
 };
 const polarCommands = new Set(['scan', 'select', 'connect', 'start-ecg', 'start-acc']);
 
-export function createMockQuest(onBreathingCue = () => {}) {
+export function createMockQuest(review) {
   const owner = { serial: 'AUDIT-QUEST', device: randomHex(16), identity_kind: 'app-installation', epoch: '7', native_epoch: '8' };
   const enrollment = { controller: randomHex(16), key: randomHex(32) };
   const source = new MockECG();
@@ -27,9 +27,14 @@ export function createMockQuest(onBreathingCue = () => {}) {
   const receipts = new Map();
   const access = { v: 1, role: 'active', revision: 0, active_phone: 'Audit-Smartphone' };
   const setup = { g: 1, r: 0, attempt: 0, input: 'automatic', started: null, collectingAt: null };
+  if (review === 'scenarios' || review === 'session') {
+    setup.input = 'polar-tilt';
+    setup.attempt = 1;
+    setup.started = setup.collectingAt = performance.now() - cycle * 2;
+  }
   const discovery = { state: 'ready', owner, endpoints: [endpoint], pairing: 1 };
   let fixture = 'normal', phase = 'IDLE', condition = 'condition-a', generation = 0, witness = 0;
-  let speed = 1, run, sessionGrant, recovery, kioskRevision = 1;
+  let speed = 1, run, sessionGrant, recovery, kioskRevision = 1, initialSession;
   let connected = true, ecg = true, acc = true, selected = true, scanned = false, polarRevision = 1;
 
   function setupStatus(now) {
@@ -50,7 +55,6 @@ export function createMockQuest(onBreathingCue = () => {}) {
     const failed = Boolean(target && !collecting && setup.fail);
     if (target && !collecting && !failed && setup.input === 'automatic') setup.input = 'polar-tilt';
     const playing = setup.started !== null && !recovery;
-    if (playing && phase === 'IDLE' && fixture !== 'setup-error') onBreathingCue(phaseNumber, setup.g);
     const ready = setup.input !== 'automatic' && !recovery;
     const old = fixture === 'old-apk';
     const volume = playing ? Math.min(1, breathVolumeAt(frames - 480) * .95 + .02) : 0;
@@ -163,6 +167,16 @@ export function createMockQuest(onBreathingCue = () => {}) {
     return true;
   }
 
+  async function armRun(scenario, selectedCondition) {
+    phase = 'ARMING';
+    await recordings.begin(scenario, selectedCondition);
+    condition = selectedCondition;
+    generation++;
+    sessionGrant = randomHex(16);
+    run = { scenario, duration: runLengths[scenario], speed, elapsed: 0, started: null };
+    phase = 'ARMED';
+  }
+
   async function sessionAction(action, command, now) {
     const { op } = command;
     if (op === 'arm') {
@@ -171,14 +185,8 @@ export function createMockQuest(onBreathingCue = () => {}) {
         || typeof participant_id !== 'string' || !participant_id || !Object.hasOwn(runLengths, scenario)
         || (scenario === 'haupt-15' && command.condition !== 'condition-a')
         || !['condition-a', 'condition-b'].includes(command.condition) || fixture === 'signal-loss') return false;
-      phase = 'ARMING';
       // The supplied ID is intentionally not retained in any simulated recording.
-      await recordings.begin(scenario, command.condition);
-      condition = command.condition;
-      generation++;
-      sessionGrant = randomHex(16);
-      run = { duration: runLengths[scenario], speed, elapsed: 0, started: null };
-      phase = 'ARMED';
+      await armRun(scenario, command.condition);
       return true;
     }
     if (op === 'save-next' && run && ['RUNNING', 'PAUSED', 'ARMED'].includes(phase)) {
@@ -203,7 +211,10 @@ export function createMockQuest(onBreathingCue = () => {}) {
   async function dispatch(action, command, signal) {
     const now = performance.now();
     await advance(now);
-    if (action === 'status') return snapshot(now);
+    if (action === 'status') {
+      if (review === 'session') await (initialSession ??= armRun('haupt-15', 'condition-a'));
+      return snapshot(now);
+    }
     if (action === 'ecg-preview') {
       if (!connected || !ecg || fixture === 'signal-loss') return { v: 1, samples: [] };
       await source.prepare();
@@ -255,6 +266,17 @@ export function createMockQuest(onBreathingCue = () => {}) {
     return fixture === 'bluetooth-off' ? { state: 'bluetooth-off' } : discovery;
   }
   return {
+    audioPlayback(calibrationRequested) {
+      const now = performance.now();
+      if (phase === 'RUNNING' && run.scenario !== 'free-exploration' && run.speed === 1) {
+        const seconds = elapsedRun(run, now);
+        return seconds < run.duration ? { key: `run/${generation}/${run.started}`, seconds } : null;
+      }
+      if (calibrationRequested && phase === 'IDLE' && setup.started !== null && !recovery && fixture !== 'setup-error') {
+        return { key: `calibration/${setup.g}`, seconds: (now - setup.started) / 1000 };
+      }
+      return null;
+    },
     savedPair: { ...owner, endpoint, enrollment, build: fingerprint },
     services: {
       selectQuest: async () => {

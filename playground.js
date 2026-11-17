@@ -1,30 +1,38 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
-import { createMockQuest } from './mock-quest.js?v=scenario-progress';
+import { createMockQuest } from './mock-quest.js?v=review-links';
+import { openDialog } from './dialogs.js';
+import { mountBreathingAudio } from './playground-audio.js';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
-import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=header-actions';
+import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=review-links';
 import { showBluetooth, showOfflineChecks } from './connectivity.js?v=header-actions';
 
 const byId = id => document.getElementById(id);
+const reviewViews = ['connection', 'participant', 'calibration', 'scenarios', 'session'];
 
 export function mountPlayground() {
   const url = new URL(location.href);
   const view = byId('simulation-screen');
-  view.value = url.hash === '#daten' ? 'history' : url.searchParams.has('pairing') ? 'pairing' : 'connected';
+  const requested = url.searchParams.get('view');
+  const entry = url.hash === '#daten' ? 'history' : url.searchParams.has('pairing') ? 'pairing'
+    : reviewViews.includes(requested) ? requested : 'connection';
+  view.value = entry;
 
   function navigate(next) {
     const target = new URL(location.href);
     target.hash = next === 'history' ? 'daten' : '';
+    target.searchParams.delete('view');
+    target.searchParams.delete('pairing');
     if (next === 'pairing') target.searchParams.set('pairing', '1');
-    else target.searchParams.delete('pairing');
-    // Switching the audit entry point starts a new simulated device session.
+    else if (reviewViews.includes(next) && next !== 'connection') target.searchParams.set('view', next);
+    // A hash-only change needs a full reload too, to start a fresh mock device.
     history.replaceState(null, '', target);
     location.reload();
   }
 
-  byId('simulation-reset').addEventListener('click', () => navigate('connected'));
+  byId('simulation-reset').addEventListener('click', () => navigate('connection'));
   view.addEventListener('change', () => navigate(view.value));
 
-  if (view.value === 'history') {
+  if (entry === 'history') {
     byId('quest').hidden = true;
     byId('daten').hidden = false;
     showOfflineChecks();
@@ -36,32 +44,35 @@ export function mountPlayground() {
   }
 
   const preview = byId('breathing-preview');
-  const startCalibration = byId('preview-calibrate');
-  let audio, lastCue;
-  for (const button of [startCalibration, byId('preview-restart')]) {
+  const quest = createMockQuest(entry);
+  let calibrationRequested = false, questAvailable = false;
+  const audio = mountBreathingAudio(() => questAvailable ? quest.audioPlayback(calibrationRequested) : null);
+  for (const id of ['preview-calibrate', 'preview-restart', 'preview-controller', 'quest-play']) {
+    const button = byId(id);
     button.addEventListener('click', () => {
-      if (!globalThis.AudioContext) return;
-      // Unlock sound with the operator's gesture. Simulated Quest status cues each phase.
-      audio ??= new AudioContext();
-      if (audio.state === 'suspended') void audio.resume().catch(() => {});
+      if (button.hidden || button.disabled) return;
+      if (id !== 'quest-play') calibrationRequested = true;
+      audio.unlock();
     });
   }
-  const quest = createMockQuest((phase, generation) => {
-    const cue = `${generation}/${phase}`;
-    if (audio?.state !== 'running' || preview.hidden || !startCalibration.hidden || document.hidden || cue === lastCue) return;
-    lastCue = cue;
-    const tone = audio.createOscillator();
-    const volume = audio.createGain();
-    const now = audio.currentTime;
-    tone.frequency.value = [523, 440, 330, 440][phase % 4];
-    volume.gain.setValueAtTime(0, now);
-    volume.gain.linearRampToValueAtTime(0.06, now + 0.04);
-    volume.gain.linearRampToValueAtTime(0, now + 0.28);
-    tone.connect(volume).connect(audio.destination);
-    tone.onended = () => { tone.disconnect(); volume.disconnect(); };
-    tone.start(now);
-    tone.stop(now + 0.28);
-  });
+  let focusReview = true;
+  function onPaint({ status, unknown }) {
+    questAvailable = Boolean(status) && !unknown;
+    if (preview.hidden) calibrationRequested = false;
+    audio.update();
+    if (!focusReview || !questAvailable) return;
+    const participant = byId('quest-participant');
+    if (entry === 'participant' && !participant.hidden && !byId('patient-fields').disabled) {
+      focusReview = false;
+      openDialog(byId('participant-dialog'), participant);
+    } else if (entry === 'scenarios' && !byId('session-choices').hidden) {
+      focusReview = false;
+      byId('quest-scenario').querySelector('input:checked')?.focus({ preventScroll: true });
+    } else if (entry === 'session' && !byId('quest-playback').hidden && !byId('quest-play').disabled) {
+      focusReview = false;
+      byId('quest-play').focus({ preventScroll: true });
+    }
+  }
   async function checkBluetooth() {
     if (document.hidden) return;
     const result = await quest.services.rediscoverQuest();
@@ -81,8 +92,8 @@ export function mountPlayground() {
     field.value = value;
     field.readOnly = true;
   }
-  const page = mountQuestRehearsal(participantIdentity, view.value === 'connected' ? quest.savedPair : undefined,
-    { ...quest.services, storage, driveOptions: createMockDrive() });
+  const page = mountQuestRehearsal(participantIdentity, entry === 'pairing' ? undefined : quest.savedPair,
+    { ...quest.services, storage, driveOptions: createMockDrive(), review: entry, onPaint });
   byId('simulation-state').addEventListener('change', event => {
     quest.setFixture(event.target.value);
     void checkBluetooth();

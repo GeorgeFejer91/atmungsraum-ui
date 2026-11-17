@@ -32,6 +32,17 @@ test('the fixture produces a visible packet gap in the production ECG renderer',
   assert.equal(display.frame(now + packet.ttl), null);
 });
 
+test('the browser uses the original Quest breathing manifest and WAV bytes', () => {
+  const upstream = readFileSync(new URL('../assets/audio/box-loop.json', import.meta.url));
+  assert.equal(createHash('sha256').update(upstream).digest('hex'),
+    'b50ce8853b9d097b904cc90043e580a75ce17662e1ff2c985bb08b7df45a9ece');
+  for (const { cue } of JSON.parse(upstream).phases) {
+    const wav = readFileSync(new URL(`../${cue.path}`, import.meta.url));
+    assert.equal(wav.length, cue.bytes);
+    assert.equal(createHash('sha256').update(wav).digest('hex'), cue.sha256);
+  }
+});
+
 test('box cue, accelerated run clock and mock download stay deterministic', () => {
   assert.deepEqual([0, 2000, 4000, 8000, 10000, 12000, 16000].map(breathVolumeAt), [0, .5, 1, 1, .5, 0, 0]);
   const run = { duration: 900, elapsed: 24, speed: 60, started: 1000 };
