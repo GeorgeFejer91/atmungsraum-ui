@@ -28,11 +28,11 @@ breathing cycles directly. Verify the particle response with the participant, th
 accept or restart. After two Polar attempts the operator can also switch to a VR
 controller and check its response. Accepting opens a single page with three
 illustrated scenario tiles: **Probe-Runde** (instruction plus five minutes
-of guided breathing), **Freie Erkundung**
-(end manually), and **Haupt-Runde** (15 minutes, one fixed condition). Start,
-pause, resume, and end the run using the app's controls. Timed scenarios show
-a progress bar and elapsed versus total time; free exploration shows elapsed
-time. Saved runs offer a synthetic CSV download.
+of guided breathing), **Freie Erkundung** (instruction plus 7:05 of free
+breathing), and **Haupt-Runde** (15 minutes, one fixed condition). Start,
+pause, resume, and end the run using the app's controls. Each scenario shows
+a progress bar and elapsed versus total time. Saved runs offer a synthetic
+CSV download.
 
 During playback, **Partikelvorschau** shows a small coupled particle sphere
 driven by the simulated Polar breathing signal. It expands during inhale,
@@ -75,9 +75,13 @@ sounds from Proton Drive play beneath the corresponding German counts.
 [Voice takes](https://github.com/GeorgeFejer91/viscereality.org/tree/574a43359266de733eeb44d70e740e05c86f0922/atmungsraum/assets/audio/main-study/de)
 · [Breath recording provenance](https://github.com/GeorgeFejer91/viscereality.org/blob/96713eed1cf43ea8940d17ca727fd9f318d8900e/atmungsraum/assets/audio/box-breathing/de/soft-v2/manifest.json)
 
-Playback begins on a calibration or session action. Both timed scenarios use
-the loop at normal speed. Free exploration and accelerated runs are silent. A
-connected Quest owns its own audio.
+Playback begins on a calibration or session action. Probe-Runde and Haupt-Runde
+use the guided cues at normal speed. Accelerated runs are silent. A connected
+Quest owns its own audio.
+
+**Freie Erkundung** plays the German instruction, then fades in the supplied
+background music over three seconds. The music plays once for 7:05; the 7:27
+run ends automatically when the track ends.
 
 **Haupt-Runde** opens with the eyes-closed and eyes-open breathing checks,
 then the [German box-breathing instructions](assets/audio/main-study-instructions.txt).

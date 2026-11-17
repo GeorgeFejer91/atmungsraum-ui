@@ -1,4 +1,4 @@
-import { mountPlayground } from './playground.js?v=probe-instructions';
+import { mountPlayground } from './playground.js?v=free-exploration-audio';
 import { mountDialogs } from './dialogs.js';
 
 const root = document.documentElement;

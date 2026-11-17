@@ -8,6 +8,8 @@
   that calibration waits for the German prelude to end and that cancelling
   leaves calibration unstarted. Chrome checks that a failed session download
   can be retried and that a slow download cannot become a Quest timeout. The
+  Freie Erkundung check verifies the handoff from instruction to music,
+  pause and resume within the track, and automatic completion. The
   strict GUI audit covers these audio loading and unavailable states. Use
   `--url` for the published site.
 - `for-ai/scripts/check-context.ps1 -RequireRemote` checks the control plane

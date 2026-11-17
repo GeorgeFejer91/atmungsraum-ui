@@ -1,8 +1,11 @@
 import { mainStudy } from './assets/audio/main-study-timeline.js?v=matched-controls';
 import { probeStudy } from './assets/audio/probe-timeline.js?v=probe-instructions';
+import { freeExploration } from './assets/audio/free-exploration-timeline.js';
 
 export const ecgRate = 130;
-export const scenarioTimelines = { 'haupt-15': mainStudy, 'probe-5': probeStudy };
+export const scenarioTimelines = {
+  'haupt-15': mainStudy, 'probe-5': probeStudy, 'free-exploration': freeExploration,
+};
 const packetLength = ecgRate * 2;
 const clockHz = 1_000_000_000;
 const scenePhases = ['inhale', 'hold', 'exhale', 'hold'];
@@ -59,7 +62,7 @@ export function sceneBreathingAt(timeMs, scenario) {
 
 export const runLengths = {
   'probe-5': probeStudy.durationFrames / probeStudy.sampleRate,
-  'free-exploration': Infinity,
+  'free-exploration': freeExploration.durationFrames / freeExploration.sampleRate,
   'haupt-15': mainStudy.durationFrames / mainStudy.sampleRate,
 };
 export const mainStudyOutroSeconds = mainStudy.closing.frames / mainStudy.sampleRate;

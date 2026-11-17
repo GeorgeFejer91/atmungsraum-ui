@@ -1,5 +1,5 @@
 import { MockECG } from './mock-ecg.js';
-import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, mainStudyOutroSeconds, runLengths, scenarioTimelines, sceneBreathingAt } from './simulation.js?v=probe-instructions';
+import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, mainStudyOutroSeconds, runLengths, scenarioTimelines, sceneBreathingAt } from './simulation.js?v=free-exploration-audio';
 import { joinQuest } from './vendor/atmungsraum/quest-gateway.js';
 import { pairPhone } from './vendor/atmungsraum/quest-pairing.js';
 import { createMockRecordings } from './mock-recordings.js';
@@ -285,7 +285,7 @@ export function createMockQuest(review) {
     },
     audioPlayback(calibrationRequested) {
       const now = performance.now();
-      if (phase === 'RUNNING' && run.scenario !== 'free-exploration' && run.speed === 1) {
+      if (phase === 'RUNNING' && run.speed === 1) {
         const seconds = elapsedRun(run, now);
         return run.scenario === 'haupt-15' || seconds < run.duration
           ? { key: runAudioKey(), seconds, scenario: run.scenario } : null;

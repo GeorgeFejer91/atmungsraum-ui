@@ -1,7 +1,7 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
-import { createMockQuest } from './mock-quest.js?v=probe-instructions';
+import { createMockQuest } from './mock-quest.js?v=free-exploration-audio';
 import { openDialog } from './dialogs.js';
-import { mountBreathingAudio, playCalibrationPrelude } from './playground-audio.js?v=probe-instructions';
+import { mountBreathingAudio, playCalibrationPrelude } from './playground-audio.js?v=free-exploration-audio';
 import { mountSceneParticles } from './scene-particles.js?v=main-study-sequence';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
 import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=audio-start';

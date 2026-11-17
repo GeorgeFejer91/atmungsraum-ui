@@ -391,6 +391,30 @@ def check_playback(browser, url):
     expect(page.locator("#scene-breath-phase")).to_have_text("Ausatmen")
     expect(page.locator("#quest-playback")).to_be_hidden()
     assert page.evaluate("playedCues.length") == last + 1
+
+    assert page.goto(urlsplit(url)._replace(query="view=scenarios").geturl()).ok
+    page.get_by_role("radio", name="Freie Erkundung").check()
+    play.click()
+    expect(play).to_have_text("Pause")
+    expect(progress).to_be_visible()
+    total = progress.evaluate("bar => bar.max")
+    assert total == 447070, total
+    page.wait_for_function("playedCues[0]?.audible()", timeout=15000)
+    assert page.evaluate("playedCues[0].offset < 1 && playedCues[0].duration > 20")
+    bank = page.evaluate("playedCues[0].bank")
+    instruction = resume_at(19000, bank, 18.5, 21)
+    page.wait_for_function("i => playedCues[i + 1]?.bank === playedCues[i].bank", arg=instruction)
+    assert page.evaluate("""i => {
+      const [voice, music] = playedCues.slice(i, i + 2);
+      return Math.abs(music.start - (voice.start + voice.duration)) < .01
+        && Math.abs(music.offset - 21.786) < .01 && Math.abs(music.duration - 425.284) < .01;
+    }""", instruction)
+    music = resume_at(27000, bank, 26, 30)
+    expect(page.locator("#scene-breath-phase")).to_have_text("Freie Atmung")
+    page.clock.fast_forward(total)
+    expect(page.locator("#quest-playback")).to_be_hidden()
+    page.wait_for_function("playedCues.every(cue => cue.ended)")
+    assert page.evaluate("playedCues.length") == music + 1
     page.close()
 
 
@@ -556,9 +580,9 @@ def full_flow(browser, url, image):
     exploration.check()
     play.click()
     expect(play).to_have_text("Pause")
-    expect(progress).to_be_hidden()
-    page.clock.fast_forward(22000)
-    expect(page.locator("#quest-clock")).to_have_text(re.compile(r"^(2[1-9]|[3-9]\d):\d\d$"))
+    expect(progress).to_be_visible()
+    expect(progress).to_have_attribute("max", "447070")
+    expect(page.locator("#quest-clock")).to_have_text(re.compile(r"^\d{2}:\d{2} / 07:27$"))
     page.locator("#quest-finish").click()
     expect(page.locator("#breathing-preview")).to_be_visible()
     page.locator("#preview-continue").click()

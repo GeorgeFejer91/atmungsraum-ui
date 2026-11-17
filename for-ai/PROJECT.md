@@ -25,11 +25,10 @@ Simulation menu.
    two Quest-reported Polar attempts for the current participant setup.
 4. **VR scenario and session.** Show three illustrated square tiles on one
    page: **Probe-Runde** (instruction plus five minutes of guided breathing),
-   **Freie Erkundung** (end manually), and
+   **Freie Erkundung** (instruction plus 7:05 of unguided breathing), and
    **Haupt-Runde** (15 minutes, one fixed condition). Select a tile and press
    **Starten**. Timed runs show elapsed and total time and a progress bar above
-   the pause and end controls. The bar holds while paused. Free exploration
-   shows elapsed time only.
+   the pause and end controls. The bar holds while paused.
 
 The current build starts in the simulated connected state and opens the
 participant form as a dialog. Its fixture exports use a fixed demo identity.
@@ -99,6 +98,9 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   cycles with the supplied recording. Test a slow or failed audio download
   with inline loading and retry feedback. The strict Chrome audit passed
   41 states across seven viewport cases.
+- [x] Play the supplied instruction and music in Freie Erkundung. Chrome
+  verified the handoff, pause and resume, and automatic completion. The
+  strict audit passed 42 states across seven viewport cases.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 
@@ -159,6 +161,10 @@ The opening lasts five minutes. Guided breathing runs for ten minutes and ends
 with a four-second inhale and a four-second exhale after 37 full cycles. The
 outro plays after the timer ends at normal speed. Audio and the particle
 preview share the main-study timeline and simulated elapsed time.
+Freie Erkundung plays a 21.786-second instruction and then 425.284 seconds of
+background music with a three-second fade at the start of the music. Its timer
+includes both clips and ends the run when the music ends. It uses no guided
+breathing cues.
 At normal speed the playground loads the audio before dispatching Start.
 The session status shows loading or allows retry if the audio is unavailable.
 `scene-particles.js` draws 72 particles from the simulated Polar breathing

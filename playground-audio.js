@@ -1,4 +1,4 @@
-import { breathPhaseSlot, scenarioTimelines } from './simulation.js?v=probe-instructions';
+import { breathPhaseSlot, scenarioTimelines } from './simulation.js?v=free-exploration-audio';
 
 export function playCalibrationPrelude(media, signal) {
   return new Promise(resolve => {
@@ -43,29 +43,40 @@ async function loadBreathingCues(context) {
 
 const phasePools = ['inhale', 'hold', 'exhale', 'hold'];
 const rate = scenarioTimelines['haupt-15'].sampleRate;
-const narrationFiles = { 'haupt-15': 'main-study-narration.flac', 'probe-5': 'probe-narration.flac' };
+const trackFiles = {
+  'haupt-15': 'main-study-narration.flac',
+  'probe-5': 'probe-narration.flac',
+  'free-exploration': 'free-exploration.mp3',
+};
 
-async function loadNarration(context, scenario) {
+function needsBreathingCues(scenario) {
   const timeline = scenarioTimelines[scenario];
-  const path = './assets/audio/' + narrationFiles[scenario] + '?v=' + timeline.sha256;
+  return !timeline || timeline.cycleStartFrame < timeline.durationFrames;
+}
+
+async function loadScenarioTrack(context, scenario) {
+  const timeline = scenarioTimelines[scenario];
+  const file = trackFiles[scenario];
+  const path = './assets/audio/' + file + '?v=' + timeline.sha256;
   const bytes = await (await fetchAudioAsset(path)).arrayBuffer();
   const buffer = await context.decodeAudioData(bytes);
   const expectedDuration = (timeline.cycleStartFrame + (timeline.closing?.frames ?? 0)) / rate;
-  if (Math.abs(buffer.duration - expectedDuration) > 1 / buffer.sampleRate) {
-    throw new Error('Unexpected scenario narration length');
+  const padding = file.endsWith('.mp3') ? 0.05 : 1 / buffer.sampleRate;
+  if (Math.abs(buffer.duration - expectedDuration) > padding) {
+    throw new Error('Unexpected scenario audio length');
   }
   return buffer;
 }
 
-function cueAt(cues, narration, timeline, frame) {
+function cueAt(cues, track, timeline, frame) {
   const cycleStart = timeline?.cycleStartFrame ?? 0;
   if (frame < cycleStart) {
     const cue = timeline.opening.find(item => frame < item.startFrame + item.frames);
-    return { ...cue, buffer: narration };
+    return { ...cue, buffer: track };
   }
   if (timeline && frame >= timeline.durationFrames) {
     const closing = timeline.closing;
-    return closing && frame < closing.startFrame + closing.frames ? { ...closing, buffer: narration } : null;
+    return closing && frame < closing.startFrame + closing.frames ? { ...closing, buffer: track } : null;
   }
   const frames = cues.plan.cue_seconds * rate;
   const phase = Math.floor((frame - cycleStart) / frames);
@@ -76,7 +87,7 @@ function cueAt(cues, narration, timeline, frame) {
   return { startFrame: cycleStart + phase * frames, frames, offsetFrame: cue.offset * rate, buffer: cues.buffer };
 }
 
-function playCues(context, cues, narration, playback) {
+function playCues(context, cues, track, playback) {
   const timeline = scenarioTimelines[playback.scenario];
   const origin = context.currentTime - playback.seconds;
   let nextFrame = 0;
@@ -84,7 +95,7 @@ function playCues(context, cues, narration, playback) {
 
   function schedule() {
     const now = context.currentTime;
-    const cue = cueAt(cues, narration, timeline, Math.max(nextFrame, Math.floor((now - origin) * rate)));
+    const cue = cueAt(cues, track, timeline, Math.max(nextFrame, Math.floor((now - origin) * rate)));
     if (!cue) { clearInterval(timer); return; }
     const boundary = origin + cue.startFrame / rate;
     if (boundary > now + 0.5) return;
@@ -115,8 +126,8 @@ function playCues(context, cues, narration, playback) {
 
 export function mountBreathingAudio(readPlayback) {
   let context, cues, stopPlayback, playingKey, cueLoading, failed;
-  const narrations = new Map();
-  const narrationLoads = new Map();
+  const tracks = new Map();
+  const trackLoads = new Map();
 
   function stop() {
     stopPlayback?.();
@@ -136,10 +147,10 @@ export function mountBreathingAudio(readPlayback) {
   async function prepareScenario(scenario, signal) {
     if (signal.aborted) return false;
     if (!context) return true;
-    if (!narrationLoads.has(scenario)) {
-      narrationLoads.set(scenario, loadNarration(context, scenario)
-        .then(bank => { narrations.set(scenario, bank); })
-        .catch(error => { narrationLoads.delete(scenario); throw error; }));
+    if (!trackLoads.has(scenario)) {
+      trackLoads.set(scenario, loadScenarioTrack(context, scenario)
+        .then(track => { tracks.set(scenario, track); })
+        .catch(error => { trackLoads.delete(scenario); throw error; }));
     }
     let cancel;
     const interrupted = new Promise(resolve => {
@@ -147,7 +158,9 @@ export function mountBreathingAudio(readPlayback) {
       signal.addEventListener('abort', cancel, { once: true });
     });
     try {
-      const ready = Promise.all([prepareCues(), narrationLoads.get(scenario)]).then(() => true);
+      const ready = Promise.all([
+        needsBreathingCues(scenario) ? prepareCues() : null, trackLoads.get(scenario),
+      ]).then(() => true);
       return await Promise.race([ready, interrupted]);
     } catch (error) {
       audioFailed(error);
@@ -160,15 +173,15 @@ export function mountBreathingAudio(readPlayback) {
   function update() {
     const playback = document.hidden ? null : readPlayback();
     if (!playback || context?.state !== 'running') { stop(); return; }
-    if (!cues) {
+    if (!cues && needsBreathingCues(playback.scenario)) {
       if (!cueLoading && !failed) void prepareCues().then(update).catch(audioFailed);
       return;
     }
-    const narration = narrations.get(playback.scenario);
-    if (playback.scenario && !narration) return;
+    const track = tracks.get(playback.scenario);
+    if (playback.scenario && !track) return;
     if (stopPlayback && playingKey === playback.key) return;
     stop();
-    stopPlayback = playCues(context, cues, narration, playback);
+    stopPlayback = playCues(context, cues, track, playback);
     playingKey = playback.key;
   }
 
