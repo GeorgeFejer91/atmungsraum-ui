@@ -1,5 +1,5 @@
 import { MockECG } from './mock-ecg.js';
-import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, runLengths, sceneBreathingAt } from './simulation.js?v=study-instructions';
+import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, runLengths, sceneBreathingAt } from './simulation.js?v=ten-minute-guidance';
 import { joinQuest } from './vendor/atmungsraum/quest-gateway.js';
 import { pairPhone } from './vendor/atmungsraum/quest-pairing.js';
 import { createMockRecordings } from './mock-recordings.js';

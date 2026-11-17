@@ -22,12 +22,12 @@ export const mainStudy = {
     }
   ],
   "cycleStartFrame": 7248384,
-  "cycles": 45,
+  "cycles": 37,
   "closing": {
     "id": "outro",
-    "startFrame": 39000384,
-    "frames": 689616,
+    "startFrame": 33708384,
+    "frames": 837900,
     "offsetFrame": 7248384
   },
-  "sha256": "fa64c9871f9c880be09fd287a58961447661b9a006e2403608f9c408497166b7"
+  "sha256": "470b57c6f7af9e7f675e8f7e0f3d18dcdb82f73a6fe237a90bcaac2ddf8641ae"
 };

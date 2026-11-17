@@ -74,20 +74,19 @@ const instructionStart = narration.reduce((frames, clip) => frames + clip.length
 opening.push({ id: instructionId, startFrame: instructionStart, frames: instructions.length / 2, offsetFrame: instructionStart });
 narration.push(instructions);
 const cycleStartFrame = instructionStart + instructions.length / 2;
-const closingStartFrame = cycleStartFrame + plan.cycles * 4 * cueFrames;
-const closingFrames = plan.total_frames - closingStartFrame;
+const guidedFrames = 10 * 60 * rate;
+const cycles = Math.floor(guidedFrames / (4 * cueFrames));
+const closingStartFrame = cycleStartFrame + guidedFrames;
 const outroDirectory = join(sourceRoot, 'assets/audio/box-breathing/de/soft-v2');
 const outro = JSON.parse(await readFile(join(outroDirectory, 'outro.json')));
 const outroWav = await readFile(join(outroDirectory, outro.file));
-const outroTrimFrames = Math.max(0, outro.frames - closingFrames);
 if (createHash('sha256').update(outroWav).digest('hex') !== outro.sha256
-  || outroTrimFrames > outro.processing.speech_start_frame) {
+  || closingStartFrame + outro.frames > plan.total_frames) {
   throw new Error('Unexpected main-study outro asset');
 }
-const outroPcm = wavePcm(outroWav, outro.frames).subarray(outroTrimFrames * 2);
-narration.push(outroPcm, Buffer.alloc(closingFrames * 2 - outroPcm.length));
-const closing = { id: 'outro', startFrame: closingStartFrame, frames: closingFrames, offsetFrame: cycleStartFrame };
-const timeline = { sampleRate: rate, durationFrames: plan.total_frames, opening, cycleStartFrame, cycles: plan.cycles, closing,
+narration.push(wavePcm(outroWav, outro.frames));
+const closing = { id: 'outro', startFrame: closingStartFrame, frames: outro.frames, offsetFrame: cycleStartFrame };
+const timeline = { sampleRate: rate, durationFrames: plan.total_frames, opening, cycleStartFrame, cycles, closing,
   sha256: await writeFlac('main-study-narration.flac', narration) };
 await writeFile(new URL('main-study-timeline.js', audioRoot), `export const mainStudy = ${JSON.stringify(timeline, null, 2)};\n`);
-console.log(`Built ${opening.length} opening clips, ${pcm.length} phase cues and the outro for ${plan.cycles} complete cycles.`);
+console.log(`Built ${opening.length} opening clips, ${pcm.length} phase cues and the outro for ten minutes of guided breathing.`);

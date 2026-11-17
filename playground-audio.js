@@ -1,4 +1,5 @@
-import { mainStudy } from './assets/audio/main-study-timeline.js?v=study-instructions';
+import { mainStudy } from './assets/audio/main-study-timeline.js?v=ten-minute-guidance';
+import { breathPhaseSlot } from './simulation.js?v=ten-minute-guidance';
 
 export function playCalibrationPrelude(media, signal) {
   return new Promise(resolve => {
@@ -47,7 +48,8 @@ const rate = mainStudy.sampleRate;
 async function loadNarration(context) {
   const bytes = await (await fetchAudioAsset('./assets/audio/main-study-narration.flac?v=' + mainStudy.sha256)).arrayBuffer();
   const buffer = await context.decodeAudioData(bytes);
-  if (buffer.duration !== (mainStudy.cycleStartFrame + mainStudy.closing.frames) / rate) {
+  const expectedDuration = (mainStudy.cycleStartFrame + mainStudy.closing.frames) / rate;
+  if (Math.abs(buffer.duration - expectedDuration) > 1 / buffer.sampleRate) {
     throw new Error('Unexpected main-study narration length');
   }
   return buffer;
@@ -60,12 +62,13 @@ function cueAt(cues, narration, frame) {
     return { ...cue, buffer: narration };
   }
   if (narration && frame >= mainStudy.closing.startFrame) {
-    return frame < mainStudy.durationFrames ? { ...mainStudy.closing, buffer: narration } : null;
+    return frame < mainStudy.closing.startFrame + mainStudy.closing.frames
+      ? { ...mainStudy.closing, buffer: narration } : null;
   }
   const frames = cues.plan.cue_seconds * rate;
   const phase = Math.floor((frame - cycleStart) / frames);
   const cycle = Math.floor(phase / phasePools.length);
-  const slot = phase % phasePools.length;
+  const slot = breathPhaseSlot(phase, narration ? mainStudy.cycles : undefined);
   const pool = cues.plan.pools[phasePools[slot]];
   const cue = pool[(cycle + Number(slot === 3)) % pool.length];
   return { startFrame: cycleStart + phase * frames, frames, offsetFrame: cue.offset * rate, buffer: cues.buffer };
@@ -79,7 +82,7 @@ function playCues(context, cues, narration, playback) {
   function schedule() {
     const now = context.currentTime;
     const cue = cueAt(cues, narration, Math.max(nextFrame, Math.floor((now - origin) * rate)));
-    if (!cue) return;
+    if (!cue) { clearInterval(timer); return; }
     const boundary = origin + cue.startFrame / rate;
     if (boundary > now + 0.5) return;
     nextFrame = cue.startFrame + cue.frames;
@@ -95,8 +98,8 @@ function playCues(context, cues, narration, playback) {
     source.start(start, cue.offsetFrame / rate + elapsed, remaining);
   }
 
-  schedule();
   const timer = setInterval(schedule, 150);
+  schedule();
   return () => {
     clearInterval(timer);
     for (const source of sources) {

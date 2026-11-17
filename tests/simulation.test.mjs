@@ -66,7 +66,7 @@ test('the preview audio matches the catalog of all 18 main-study takes', () => {
   assert.deepEqual(takes.map(take => take.offset), Array.from({ length: 18 }, (_, i) => i * 4));
 });
 
-test('Haupt-Runde fits the three opening recordings, complete cycles and outro into 15 minutes', () => {
+test('Haupt-Runde guides breathing for exactly ten minutes and returns to free breathing on an exhale', () => {
   const { opening, sampleRate, cycleStartFrame, cycles, closing, durationFrames, sha256 } = mainStudy;
   assert.deepEqual(opening.map(cue => cue.id), [
     'atem-lauschen-augen-geschlossen', 'atem-lauschen-augen-offen', 'main-study-instructions',
@@ -80,9 +80,15 @@ test('Haupt-Runde fits the three opening recordings, complete cycles and outro i
   assert.equal(opening[2].frames, 1998720);
   assert.equal(sceneBreathingAt(163000, 'haupt-15').phase, 'natural');
   assert.equal(sceneBreathingAt(165000, 'haupt-15').phase, 'inhale');
-  assert.equal(cycles, 45);
-  assert.equal(closing.startFrame, cycleStartFrame + cycles * 16 * sampleRate);
-  assert.equal(closing.startFrame + closing.frames, 900 * sampleRate);
+  assert.equal(cycles, 37);
+  assert.equal(closing.startFrame - cycleStartFrame, 600 * sampleRate);
+  const endMs = closing.startFrame * 1000 / sampleRate;
+  assert.equal(sceneBreathingAt(endMs - 9000, 'haupt-15').phase, 'hold');
+  assert.equal(sceneBreathingAt(endMs - 6000, 'haupt-15').phase, 'inhale');
+  assert.equal(sceneBreathingAt(endMs - 2000, 'haupt-15').phase, 'exhale');
+  assert.equal(sceneBreathingAt(endMs, 'haupt-15').phase, 'natural');
+  assert.ok(sceneBreathingAt(endMs - 500, 'haupt-15').radiusM < sceneBreathingAt(endMs - 3500, 'haupt-15').radiusM);
+  assert.ok(closing.startFrame + closing.frames < durationFrames);
   assert.equal(durationFrames, 900 * sampleRate);
   const narration = readFileSync(new URL('../assets/audio/main-study-narration.flac', import.meta.url));
   assert.equal(createHash('sha256').update(narration).digest('hex'), sha256);

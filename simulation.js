@@ -1,4 +1,4 @@
-import { mainStudy } from './assets/audio/main-study-timeline.js?v=study-instructions';
+import { mainStudy } from './assets/audio/main-study-timeline.js?v=ten-minute-guidance';
 
 export const ecgRate = 130;
 const packetLength = ecgRate * 2;
@@ -32,7 +32,13 @@ export function breathVolumeAt(timeMs) {
   return 0;
 }
 
+export function breathPhaseSlot(phase, completeCycles = Infinity) {
+  // The final eight seconds are one inhale and one exhale.
+  return phase === completeCycles * 4 + 1 ? 2 : phase % 4;
+}
+
 export function sceneBreathingAt(timeMs, scenario) {
+  let completeCycles;
   if (scenario === 'haupt-15') {
     const cycleStart = mainStudy.cycleStartFrame * 1000 / mainStudy.sampleRate;
     const closingStart = mainStudy.closing.startFrame * 1000 / mainStudy.sampleRate;
@@ -41,10 +47,11 @@ export function sceneBreathingAt(timeMs, scenario) {
       return { phase: 'natural', radiusM: 1 + (1 - Math.cos(2 * Math.PI * naturalTime / 12000)) / 2 };
     }
     timeMs -= cycleStart;
+    completeCycles = mainStudy.cycles;
   }
-  const phase = Math.floor((timeMs % 16000) / 4000);
-  const volume = (1 - Math.cos(Math.PI * breathVolumeAt(timeMs))) / 2;
-  return { phase: scenePhases[phase], radiusM: 1 + volume };
+  const slot = breathPhaseSlot(Math.floor(timeMs / 4000), completeCycles);
+  const volume = (1 - Math.cos(Math.PI * breathVolumeAt(slot * 4000 + timeMs % 4000))) / 2;
+  return { phase: scenePhases[slot], radiusM: 1 + volume };
 }
 
 export const runLengths = {
