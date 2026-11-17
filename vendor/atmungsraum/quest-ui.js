@@ -35,7 +35,8 @@ const labels = {
 };
 
 export function mountQuestRehearsal(participantIdentity, savedPair, services) {
-  const { selectQuest, readQuest, rediscoverQuest, joinQuest, pairPhone, driveOptions, review, onPaint } = services;
+  const { selectQuest, readQuest, rediscoverQuest, joinQuest, pairPhone, driveOptions, review, onPaint,
+    playCalibrationPrelude } = services;
   const drive = mountQuestDrive(driveOptions);
   const questScreen = byId('quest');
   const preview = byId('breathing-preview');
@@ -53,6 +54,9 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   const previewRestart = byId('preview-restart');
   const previewController = byId('preview-controller');
   const previewContinue = byId('preview-continue');
+  const preludeCancel = byId('preview-instruction-cancel');
+  const preludeText = byId('preview-instruction-text');
+  let prelude, preludeFailed = false;
   const find = byId('quest-find');
   const statusText = byId('quest-status');
   const pairing = byId('quest-pairing');
@@ -217,6 +221,9 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     const showPreview = idle && (participantComplete || recoveringSetup) && (setupComplete || !preview.hidden || breath.setup?.attempt > 0 || recoveringSetup)
       && !previewAccepted && status.h === 'vr-preparation'
       && rehearsalPolarAllowed(status) && !unknown && (!waiting || !preview.hidden || recoveringSetup);
+    if (prelude && (!showPreview || waiting || !breath.actions.calibrate || !source || !sameQuest(prelude.owner, source))) {
+      prelude.controller.abort();
+    }
     const version = apkRelease.update(rehearsal.gateway, status);
     text(byId('apk-update-status'), version.state === 'required' ? 'APK-Update erforderlich.'
       : version.state === 'check-unavailable' ? 'Freigabestand nicht verfügbar.'
@@ -336,15 +343,18 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     const nextAction = ready ? previewContinue : previewRestart;
     const nextActionWasHidden = nextAction.hidden;
 
-    previewCalibrate.hidden = Boolean(calibrationBaseline) || pending;
+    previewCalibrate.hidden = Boolean(calibrationBaseline || prelude) || pending;
     previewCalibrate.disabled = waiting || !view.actions.calibrate;
+    if (preludeCancel) preludeCancel.hidden = !prelude;
+    if (preludeText) preludeText.hidden = !playCalibrationPrelude || Boolean(calibrationBaseline) || pending;
     previewContinue.hidden = previewContinue.disabled = !ready;
     previewRestart.hidden = !calibrationBaseline || pending || collecting;
     previewRestart.disabled = waiting || !view.actions.calibrate;
     previewController.hidden = attempts < 2 || pending || collecting || controller;
     previewController.disabled = waiting || !view.actions.controller;
 
-    const status = view.updateRequired ? 'Update the Quest app to start calibration.'
+    const status = prelude ? 'Listen to the instructions. Calibration starts when the audio ends.'
+      : view.updateRequired ? 'Update the Quest app to start calibration.'
       : view.recoveryUnavailable || breathing.waitExpired ? 'Restart the Quest app and reconnect to continue.'
       : view.recovering ? 'The Quest is restarting the breathing audio.'
       : pending ? 'Waiting for the Quest to confirm.'
@@ -358,7 +368,9 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
       : view.qualityWarning && collecting ? 'Keep your upper body still and follow the breathing cue.'
       : collecting && native.calibration === 'waiting' ? 'Calibration begins with the next full breathing cycle.'
       : collecting ? 'Follow the cue for two breathing cycles.'
-      : !view.actions.calibrate ? 'Waiting for the Quest and Polar H10 to be ready.' : '';
+      : !view.actions.calibrate ? 'Waiting for the Quest and Polar H10 to be ready.'
+      : preludeFailed ? 'Could not play the instructions. Start calibration to try again.'
+      : !calibrationBaseline && playCalibrationPrelude ? 'German instructions play before calibration.' : '';
     const language = ready && !controller ? 'de' : 'en';
     if (previewStatus.lang !== language) previewStatus.lang = language;
     text(previewStatus, status);
@@ -373,7 +385,9 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
       observation && { ...observation, a: age }, now);
     text(previewProgressText, `${cycleCount.format(view.progress.value)} of 2 cycles`);
     if (!preview.hidden) {
-      if (focused === previewTitle && nextActionWasHidden && !nextAction.hidden && !nextAction.disabled) {
+      if (prelude && focused === previewCalibrate) {
+        focusInViewport(preludeCancel);
+      } else if (focused === previewTitle && nextActionWasHidden && !nextAction.hidden && !nextAction.disabled) {
         focusInViewport(nextAction);
       } else if (focused instanceof HTMLButtonElement && preview.contains(focused) && focused.hidden) {
         focusInViewport(previewTitle);
@@ -382,8 +396,32 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   }
 
   function resetPreview() {
+    prelude?.controller.abort();
+    preludeFailed = false;
     previewAccepted = '';
     calibrationBaseline = null;
+  }
+
+  async function startCalibration() {
+    if (!playCalibrationPrelude) { void setupAct('calibrate'); return; }
+    if (prelude || document.hidden) return;
+    const controller = new AbortController();
+    prelude = { controller, owner: breathing.gateway.owner };
+    preludeFailed = false;
+    paint();
+    const played = await playCalibrationPrelude(controller.signal);
+    const restoreFocus = document.activeElement === preludeCancel;
+    prelude = undefined;
+    if (played && !controller.signal.aborted && !preview.hidden && !document.hidden) {
+      if (restoreFocus) focusInViewport(previewTitle);
+      void setupAct('calibrate');
+      return;
+    }
+    preludeFailed = !controller.signal.aborted;
+    paint();
+    if (restoreFocus && !preview.hidden && !previewCalibrate.hidden && !previewCalibrate.disabled) {
+      focusInViewport(previewCalibrate);
+    }
   }
 
   async function setupAct(op) {
@@ -880,7 +918,11 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     if (userAction || connecting || document.hidden) return;
     kiosk.acknowledge(); paint();
   });
-  for (const [button, action] of [[previewCalibrate, 'calibrate'], [previewRestart, 'calibrate'], [previewController, 'controller']]) {
+  previewCalibrate.addEventListener('click', () => {
+    if (!preview.hidden && !previewCalibrate.hidden && !previewCalibrate.disabled) void startCalibration();
+  });
+  preludeCancel?.addEventListener('click', () => prelude?.controller.abort());
+  for (const [button, action] of [[previewRestart, 'calibrate'], [previewController, 'controller']]) {
     button.addEventListener('click', () => {
       if (!preview.hidden && !button.hidden && !button.disabled) void setupAct(action);
     });
@@ -905,6 +947,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   retry.addEventListener('click', () => { nextSync = 0; void tick(); });
   archivePicker.addEventListener('change', selectArchive);
   function detach() {
+    prelude?.controller.abort();
     breathing.cancel();
     clearArchives();
     void drive.setOwner(null);
@@ -926,6 +969,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   }, 200);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
+      prelude?.controller.abort();
       clearTimeout(breathTimer);
       cancelAnimationFrame(animationFrame);
       animationFrame = 0;

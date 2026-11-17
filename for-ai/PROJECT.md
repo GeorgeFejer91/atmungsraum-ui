@@ -16,8 +16,9 @@ Simulation menu.
    page and enable **Weiter**.
 2. **Teilnehmer-ID.** Enter or select and confirm the participant ID on its own
    page. The confirmed ID determines how the run's recordings are named.
-3. **ACC breathing calibration.** Start the guided box breathing loop and
-   Polar calibration from one action. Keep the circles visible at review and
+3. **ACC breathing calibration.** Start the German instruction from one
+   action, then begin the guided box breathing loop and Polar calibration
+   when the instruction ends. Keep the circles visible at review and
    ask the operator to confirm the participant sees the particles respond.
    **Accept Calibration** advances once the Quest reports a ready input.
    **Restart Calibration** retries, and the controller option appears after
@@ -89,6 +90,10 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
 - [x] Play both control recordings, box-breathing instructions, 45 complete
   cycles and the recorded outro within the 15-minute Haupt-Runde. Chrome
   verified playback, pause and resume across the sequence and automatic end.
+- [x] Play the German instruction before the first calibration attempt and
+  offer its transcript. Chrome verified playback completion, cancellation,
+  transcript download, and retry without replaying the instruction. The strict
+  audit passed 39 states across seven viewport cases, including unavailable audio.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 
@@ -138,6 +143,10 @@ identity and a dedicated browser cache. Requests stay on the page's origin.
 `playground-audio.js` follows the simulated playback state and the Quest loop's
 four-phase timing. It rotates through the newer main-study voice takes and
 plays the recorded breath sound beneath each inhale and exhale cue.
+The playground also plays the supplied German calibration instruction. The
+controller waits for playback to end before sending the first calibration
+command. Cancelled or unavailable audio leaves calibration unstarted; retries
+after a calibration attempt go straight to the breathing cycles.
 The 15-minute Haupt-Runde plays both control recordings, box-breathing
 instructions, 45 breathing cycles, and the recorded outro. Audio and the
 particle preview share the main-study timeline and simulated elapsed time.

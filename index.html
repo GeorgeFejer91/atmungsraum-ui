@@ -14,9 +14,9 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/app-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./style.css?v=scene-particles">
+  <link rel="stylesheet" href="./style.css?v=calibration-prelude">
   <script type="module" src="./pwa-install.js?v=2"></script>
-  <script type="module" src="./app.js?v=main-study-sequence"></script>
+  <script type="module" src="./app.js?v=calibration-prelude"></script>
 </head>
 <body>
   <header id="corner-actions" aria-label="Geräte und Aktionen">
@@ -338,9 +338,12 @@
           <span id="preview-progress-text" data-measure data-measure-sample="1.99 of 2 cycles" data-live-value>0 of 2 cycles</span>
         </div>
         <div id="preview-status" role="status" data-measure></div>
+        <p id="preview-instruction-text" hidden><a href="./assets/audio/calibration-prelude.txt" download data-measure>Download German Transcript</a></p>
+        <audio id="preview-instruction-audio" src="./assets/audio/calibration-prelude.mp3" preload="none" hidden></audio>
       </div>
       <footer class="actions calibration-actions">
         <button id="preview-calibrate" type="button" disabled><span data-measure>Start Calibration</span></button>
+        <button id="preview-instruction-cancel" type="button" hidden><span data-measure>Cancel Instructions</span></button>
         <button id="preview-continue" type="button" aria-describedby="preview-status" hidden disabled><span data-measure>Accept Calibration</span></button>
         <button id="preview-restart" type="button" hidden disabled><span data-measure>Restart Calibration</span></button>
         <button id="preview-controller" type="button" hidden disabled>

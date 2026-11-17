@@ -1,5 +1,29 @@
 import { mainStudy } from './assets/audio/main-study-timeline.js';
 
+export function playCalibrationPrelude(media, signal) {
+  return new Promise(resolve => {
+    let settled = false;
+    function finish(played) {
+      if (settled) return;
+      settled = true;
+      media.removeEventListener('ended', ended);
+      media.removeEventListener('error', cancel);
+      signal.removeEventListener('abort', cancel);
+      if (!played) media.pause();
+      resolve(played);
+    }
+    const ended = () => finish(true);
+    const cancel = () => finish(false);
+    if (signal.aborted) { cancel(); return; }
+    media.addEventListener('ended', ended);
+    media.addEventListener('error', cancel);
+    signal.addEventListener('abort', cancel);
+    if (media.error) media.load();
+    if (media.currentTime) media.currentTime = 0;
+    void media.play().catch(cancel);
+  });
+}
+
 async function fetchAudioAsset(path) {
   const response = await fetch(new URL(path, import.meta.url));
   if (!response.ok) throw new Error(`Could not load ${path} (${response.status})`);

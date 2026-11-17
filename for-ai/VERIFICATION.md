@@ -4,8 +4,10 @@
   waveform gaps, session timing and synthetic CSV.
 - `python tools/check-ui.py` exercises the browser flow and its responsive
   smoke checks, including direct review links and audible breathing playback
-  through calibration recovery and session pause/resume. Use `--url` for the
-  published site.
+  through calibration recovery and session pause/resume. It also verifies
+  that calibration waits for the German prelude to end and that cancelling
+  leaves calibration unstarted. The strict GUI audit covers playing and
+  unavailable prelude states. Use `--url` for the published site.
 - `for-ai/scripts/check-context.ps1 -RequireRemote` checks the control plane
   against the configured remote. Check the exact Pages run for the pushed SHA
   and compare the public entry, display scripts, manifest and fixture bytes.

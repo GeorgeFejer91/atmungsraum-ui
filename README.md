@@ -20,8 +20,11 @@ earlier steps. The session link opens a prepared run at 00:00 and waits for
 
 The playground opens with the Quest connected, this smartphone in control, and
 both Polar H10 streams ready. Enter and confirm a test participant ID to open
-breathing setup. **Start Calibration** runs the box breathing cue and shows the
-calibration circles. Verify the particle response with the participant, then
+breathing setup. **Start Calibration** plays a 44-second German instruction
+([transcript](assets/audio/calibration-prelude.txt)), then starts the box breathing
+cues and shows calibration progress. **Cancel Instructions** stops the intro
+before any calibration data is collected. **Restart Calibration** retries the
+breathing cycles directly. Verify the particle response with the participant, then
 accept or restart. After two Polar attempts the operator can also switch to a VR
 controller and check its response. Accepting opens a single page with three
 illustrated scenario tiles: **Probe-Runde** (5 minutes), **Freie Erkundung**

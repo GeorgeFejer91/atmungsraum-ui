@@ -1,10 +1,10 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
 import { createMockQuest } from './mock-quest.js?v=main-study-sequence';
 import { openDialog } from './dialogs.js';
-import { mountBreathingAudio } from './playground-audio.js?v=main-study-sequence';
+import { mountBreathingAudio, playCalibrationPrelude } from './playground-audio.js?v=calibration-prelude';
 import { mountSceneParticles } from './scene-particles.js?v=main-study-sequence';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
-import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=review-links';
+import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=calibration-prelude';
 import { showBluetooth, showOfflineChecks } from './connectivity.js?v=header-actions';
 
 const byId = id => document.getElementById(id);
@@ -49,11 +49,16 @@ export function mountPlayground() {
   const particles = mountSceneParticles(byId('scene-particles'), quest.sceneBreathing);
   let calibrationRequested = false, questAvailable = false;
   const audio = mountBreathingAudio(() => questAvailable ? quest.audioPlayback(calibrationRequested) : null);
+  async function playPrelude(signal) {
+    const played = await playCalibrationPrelude(byId('preview-instruction-audio'), signal);
+    if (played && !signal.aborted) calibrationRequested = true;
+    return played;
+  }
   for (const id of ['preview-calibrate', 'preview-restart', 'preview-controller', 'quest-play']) {
     const button = byId(id);
     button.addEventListener('click', () => {
       if (button.hidden || button.disabled) return;
-      if (id !== 'quest-play') calibrationRequested = true;
+      if (id === 'preview-restart' || id === 'preview-controller') calibrationRequested = true;
       audio.unlock();
     });
   }
@@ -96,7 +101,8 @@ export function mountPlayground() {
     field.readOnly = true;
   }
   const page = mountQuestRehearsal(participantIdentity, entry === 'pairing' ? undefined : quest.savedPair,
-    { ...quest.services, storage, driveOptions: createMockDrive(), review: entry, onPaint });
+    { ...quest.services, storage, driveOptions: createMockDrive(), review: entry, onPaint,
+      playCalibrationPrelude: playPrelude });
   byId('simulation-state').addEventListener('change', event => {
     quest.setFixture(event.target.value);
     void checkBluetooth();

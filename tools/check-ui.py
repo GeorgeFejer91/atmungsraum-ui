@@ -44,8 +44,16 @@ def diagnose(page, check, dialog):
     expect(page.locator(dialog)).to_be_visible()
 
 
+def finish_prelude(page):
+    page.wait_for_function("() => { const audio = document.querySelector('#preview-instruction-audio'); return audio?.readyState >= 2 && !audio.paused; }")
+    # The layout checks advance simulated calibration; check_playback tests the real end event.
+    page.locator("#preview-instruction-audio").evaluate("audio => { audio.pause(); audio.dispatchEvent(new Event('ended')); }")
+
+
 def collect_calibration(page, button="#preview-calibrate"):
     page.locator(button).click()
+    if button == "#preview-calibrate":
+        finish_prelude(page)
     expect(page.locator("#preview-progress")).to_be_visible()
     expect(page.locator("#preview-continue")).to_be_hidden()
     expect(page.locator("#preview-actual-circle")).to_be_visible()
@@ -229,13 +237,36 @@ def check_playback(browser, url):
     enter_participant(page)
     expect(page.locator("#preview-calibrate")).to_be_enabled()
     assert page.evaluate("playedCues.length") == 0
-    page.locator("#preview-calibrate").click()
+    start = page.locator("#preview-calibrate")
+    cancel = page.get_by_role("button", name="Cancel Instructions")
+    prelude = page.locator("#preview-instruction-audio")
+    with page.expect_download() as saved:
+        page.get_by_role("link", name="Download German Transcript").click()
+    assert "Jeder Atemzyklus besteht aus vier Phasen" in saved.value.path().read_text(encoding="utf-8")
+    start.press("Enter")
+    expect(page.locator("#preview-status")).to_contain_text("Calibration starts when the audio ends.", timeout=3000)
+    expect(cancel).to_be_focused()
+    page.wait_for_function("document.querySelector('#preview-instruction-audio').currentTime > 0.2")
+    expect(page.locator("#preview-progress")).to_be_hidden()
+    assert page.evaluate("playedCues.length") == 0
+    cancel.press("Enter")
+    expect(start).to_be_focused()
+    assert prelude.evaluate("audio => audio.paused")
+    expect(page.locator("#preview-progress")).to_be_hidden()
+    start.click()
+    page.wait_for_function("document.querySelector('#preview-instruction-audio').currentTime > 0.2")
+    assert 44 < prelude.evaluate("audio => audio.duration") < 45
+    expect(page.locator("#preview-progress")).to_be_hidden()
+    prelude.evaluate("audio => { audio.playbackRate = 4; }")
+    expect(page.locator("#preview-progress")).to_be_visible(timeout=18000)
+    assert prelude.evaluate("audio => audio.ended")
     page.wait_for_function("playedCues[0]?.audible()", timeout=10000)
     set_fixture(page, "setup-error")
     page.wait_for_function("playedCues.every(cue => cue.ended)")
     before = page.evaluate("playedCues.length")
     page.locator("#preview-restart").click()
     page.wait_for_function("before => playedCues[before]?.audible()", arg=before, timeout=10000)
+    assert prelude.evaluate("audio => audio.ended")
 
     page.clock.install()
     assert page.goto(urlsplit(url)._replace(query="view=session").geturl()).ok
