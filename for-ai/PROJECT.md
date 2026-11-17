@@ -94,6 +94,10 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   offer its transcript. Chrome verified playback completion, cancellation,
   transcript download, and retry without replaying the instruction. The strict
   audit passed 39 states across seven viewport cases, including unavailable audio.
+- [x] Replace the instruction between the breathing checks and the guided
+  cycles with the supplied recording. Test a slow or failed audio download
+  with inline loading and retry feedback. The strict Chrome audit passed
+  41 states across seven viewport cases.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 
@@ -150,6 +154,10 @@ after a calibration attempt go straight to the breathing cycles.
 The 15-minute Haupt-Runde plays both control recordings, box-breathing
 instructions, 45 breathing cycles, and the recorded outro. Audio and the
 particle preview share the main-study timeline and simulated elapsed time.
+The study instruction comes from the supplied German recording. Its full
+duration fits the timeline by shortening the silence before the spoken outro.
+At normal speed the playground loads the audio before dispatching Start.
+The session status shows loading or allows retry if the audio is unavailable.
 `scene-particles.js` draws 72 particles from the simulated Polar breathing
 signal. The radius follows the Quest configuration's 1 to 2 metre range in
 proportion, with sine-shaped transitions and both holds. The view caps

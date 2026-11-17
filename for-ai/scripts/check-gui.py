@@ -150,6 +150,24 @@ def measure_views(page, flow, url, style_text):
         style_text()
         expect(page.locator(selector)).to_be_visible()
         capture("review link: " + view)
+        if view == "scenarios":
+            main_study = page.get_by_role("radio", name="Haupt-Runde")
+            main_study.check()
+            status = page.locator("#quest-status")
+            narration_route = "**/main-study-narration.flac*"
+
+            def unavailable(route):
+                expect(status).to_have_text("Audio wird geladen …")
+                capture("session audio loading")
+                route.fulfill(status=200, content_type="audio/flac", body="invalid media")
+
+            page.route(narration_route, unavailable)
+            page.locator("#quest-play").click()
+            expect(status).to_have_text("Audio nicht geladen. Bitte erneut starten.")
+            expect(main_study).to_be_checked()
+            expect(page.locator("#quest-recovery-open")).to_be_hidden()
+            capture("session audio unavailable")
+            page.unroute(narration_route)
     page.locator("#quest-play").click()
     expect(page.locator("#scene-breath-phase")).to_have_text("Freie Atmung")
     capture("main-study opening")

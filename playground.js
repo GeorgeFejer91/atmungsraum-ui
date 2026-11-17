@@ -1,10 +1,10 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
-import { createMockQuest } from './mock-quest.js?v=main-study-sequence';
+import { createMockQuest } from './mock-quest.js?v=audio-start';
 import { openDialog } from './dialogs.js';
-import { mountBreathingAudio, playCalibrationPrelude } from './playground-audio.js?v=calibration-prelude';
+import { mountBreathingAudio, playCalibrationPrelude } from './playground-audio.js?v=audio-start';
 import { mountSceneParticles } from './scene-particles.js?v=main-study-sequence';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
-import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=calibration-prelude';
+import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=audio-start';
 import { showBluetooth, showOfflineChecks } from './connectivity.js?v=header-actions';
 
 const byId = id => document.getElementById(id);
@@ -45,7 +45,7 @@ export function mountPlayground() {
   }
 
   const preview = byId('breathing-preview');
-  const quest = createMockQuest(entry, () => audio.prepareMainStudy());
+  const quest = createMockQuest(entry);
   const particles = mountSceneParticles(byId('scene-particles'), quest.sceneBreathing);
   let calibrationRequested = false, questAvailable = false;
   const audio = mountBreathingAudio(() => questAvailable ? quest.audioPlayback(calibrationRequested) : null);
@@ -102,7 +102,8 @@ export function mountPlayground() {
   }
   const page = mountQuestRehearsal(participantIdentity, entry === 'pairing' ? undefined : quest.savedPair,
     { ...quest.services, storage, driveOptions: createMockDrive(), review: entry, onPaint,
-      playCalibrationPrelude: playPrelude });
+      playCalibrationPrelude: playPrelude,
+      preparePlayback: (scenario, signal) => quest.needsMainStudyAudio(scenario) ? audio.prepareMainStudy(signal) : null });
   byId('simulation-state').addEventListener('change', event => {
     quest.setFixture(event.target.value);
     void checkBluetooth();

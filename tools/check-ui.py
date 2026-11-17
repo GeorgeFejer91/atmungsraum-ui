@@ -148,6 +148,43 @@ def check_review_links(browser, url):
         page.close()
 
 
+def check_main_study_start(browser, url):
+    session_url = urlsplit(url)._replace(query="view=session", fragment="").geturl()
+    page = browser.new_page(viewport={"width": 390, "height": 844})
+    play = page.locator("#quest-play")
+    status = page.locator("#quest-status")
+    recovery = page.locator("#quest-recovery-open")
+    failed = True
+
+    def narration(route):
+        if failed:
+            route.fulfill(status=503)
+            return
+        # This exceeds the Quest command deadline. The scene must still be ready to start.
+        page.wait_for_timeout(7500)
+        expect(status).to_have_text("Audio wird geladen …")
+        expect(page.locator("#quest-clock")).to_have_text("00:00 / 15:00")
+        expect(recovery).to_be_hidden()
+        route.continue_()
+
+    page.route("**/main-study-narration.flac*", narration)
+    assert page.goto(session_url).ok
+    expect(play).to_have_text("Starten")
+    expect(play).to_be_enabled()
+    play.press("Enter")
+    expect(status).to_have_text("Audio nicht geladen. Bitte erneut starten.")
+    expect(play).to_be_enabled()
+    expect(play).to_be_focused()
+    expect(recovery).to_be_hidden()
+    layout_check(page)
+    failed = False
+    play.press("Enter")
+    expect(play).to_have_text("Pause", timeout=18000)
+    expect(recovery).to_be_hidden()
+    expect(page.locator("#quest-recovery-dialog")).to_be_hidden()
+    page.close()
+
+
 def check_scene_particles(browser, url):
     session_url = urlsplit(url)._replace(query="view=session", fragment="").geturl()
     page, errors = start_page(browser, session_url, clock=True)
@@ -175,7 +212,9 @@ def check_scene_particles(browser, url):
     play.click()
     expect(preview).to_be_visible(timeout=5000)
     expect(phase).to_have_text("Freie Atmung")
-    page.clock.fast_forward(160500)
+    page.clock.fast_forward(162500)
+    expect(phase).to_have_text("Freie Atmung")
+    page.clock.fast_forward(2100)
     expect(phase).to_have_text("Einatmen")
     initial = diameter()
     assert initial > 0
@@ -293,7 +332,8 @@ def check_playback(browser, url):
 
     resume_at(56000, 180, 54.83, 60)
     resume_at(120000, 180, 119.04, 124)
-    first = resume_at(161000, 72, 0, 4)
+    resume_at(162000, 180, 161, 164)
+    first = resume_at(165000, 72, 0, 4)
     page.wait_for_function("first => playedCues[first + 4]?.audible()", arg=first, timeout=20000)
     assert page.evaluate("i => playedCues.slice(i, i + 5).map(cue => Math.floor(cue.offset / 4) * 4)", first) == [0, 64, 28, 68, 4]
     assert page.evaluate("i => playedCues.slice(i + 1, i + 5).every((cue, j) => "
@@ -545,6 +585,8 @@ def main():
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(channel="chrome")
             check_review_links(browser, url)
+            check_main_study_start(browser, url)
+            print("PASS failed audio can be retried and slow audio starts without Quest recovery", flush=True)
             check_scene_particles(browser, url)
             print("PASS particle expansion, contraction, pause, signal loss, and reduced motion", flush=True)
             check_playback(browser, url)

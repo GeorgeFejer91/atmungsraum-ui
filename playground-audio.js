@@ -1,4 +1,4 @@
-import { mainStudy } from './assets/audio/main-study-timeline.js';
+import { mainStudy } from './assets/audio/main-study-timeline.js?v=study-instructions';
 
 export function playCalibrationPrelude(media, signal) {
   return new Promise(resolve => {
@@ -25,7 +25,7 @@ export function playCalibrationPrelude(media, signal) {
 }
 
 async function fetchAudioAsset(path) {
-  const response = await fetch(new URL(path, import.meta.url));
+  const response = await fetch(new URL(path, import.meta.url), { signal: AbortSignal.timeout(45000) });
   if (!response.ok) throw new Error(`Could not load ${path} (${response.status})`);
   return response;
 }
@@ -45,7 +45,7 @@ const phasePools = ['inhale', 'hold', 'exhale', 'hold'];
 const rate = mainStudy.sampleRate;
 
 async function loadNarration(context) {
-  const bytes = await (await fetchAudioAsset('./assets/audio/main-study-narration.flac')).arrayBuffer();
+  const bytes = await (await fetchAudioAsset('./assets/audio/main-study-narration.flac?v=' + mainStudy.sha256)).arrayBuffer();
   const buffer = await context.decodeAudioData(bytes);
   if (buffer.duration !== (mainStudy.cycleStartFrame + mainStudy.closing.frames) / rate) {
     throw new Error('Unexpected main-study narration length');
@@ -125,16 +125,24 @@ export function mountBreathingAudio(readPlayback) {
       .catch(error => { cueLoading = undefined; throw error; });
   }
 
-  async function prepareMainStudy() {
+  async function prepareMainStudy(signal) {
+    if (signal.aborted) return false;
     if (!context) return true;
     narrationLoading ??= loadNarration(context).then(bank => { narration = bank; })
       .catch(error => { narrationLoading = undefined; throw error; });
+    let cancel;
+    const interrupted = new Promise(resolve => {
+      cancel = () => resolve(false);
+      signal.addEventListener('abort', cancel, { once: true });
+    });
     try {
-      await Promise.all([prepareCues(), narrationLoading]);
-      return true;
+      const ready = Promise.all([prepareCues(), narrationLoading]).then(() => true);
+      return await Promise.race([ready, interrupted]);
     } catch (error) {
       audioFailed(error);
       return false;
+    } finally {
+      signal.removeEventListener('abort', cancel);
     }
   }
 

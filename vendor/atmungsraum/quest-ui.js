@@ -36,7 +36,7 @@ const labels = {
 
 export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   const { selectQuest, readQuest, rediscoverQuest, joinQuest, pairPhone, driveOptions, review, onPaint,
-    playCalibrationPrelude } = services;
+    playCalibrationPrelude, preparePlayback } = services;
   const drive = mountQuestDrive(driveOptions);
   const questScreen = byId('quest');
   const preview = byId('breathing-preview');
@@ -114,6 +114,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   let discoveryInProgress = false;
   let autoConnect = true;
   let userAction = null;
+  let playbackMessage = '';
   let joinMessage = '';
   const { storage } = services;
   const breathing = new BreathingSetup({ storage });
@@ -179,8 +180,8 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
       : labels[status.p] ?? 'Quest bereitet die Sitzung vor.';
     text(statusText, unknown ? 'Bestätigung ausstehend.'
       : pairingChoice ? 'Kopplung bestätigen.'
-        : connecting ? 'Quest wird verbunden …' : commandWaiting ? 'Warte auf Bestätigung der Quest …'
-          : waitingForControl ? hint : message || hint);
+        : connecting ? 'Quest wird verbunden …' : status && !waitingForControl && playbackMessage ? playbackMessage
+          : commandWaiting ? 'Warte auf Bestätigung der Quest …' : waitingForControl ? hint : message || hint);
     if (status && connectingFocus) focusInViewport(statusText);
     playback.hidden = !active;
     const duration = status?.duration_ms;
@@ -862,9 +863,39 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     const attempt = new AbortController();
     userAction = attempt;
     const scenario = sessionChoices.hidden ? '' : selectedScenario().value;
-    try { await rehearsal.run(action, attempt.signal, 'condition-a', participantId, scenario); }
-    finally { if (userAction === attempt) userAction = null; }
+    const preparation = action === 'play' && preparePlayback?.(scenario, attempt.signal);
+    const hadPlayFocus = document.activeElement === play;
+    playbackMessage = '';
+    try {
+      if (preparation) {
+        playbackMessage = 'Audio wird geladen …';
+        paint();
+        const ready = await preparation;
+        playbackMessage = '';
+        if (attempt.signal.aborted) return;
+        if (!ready) {
+          playbackMessage = 'Audio nicht geladen. Bitte erneut starten.';
+          return;
+        }
+      }
+      await rehearsal.run(action, attempt.signal, 'condition-a', participantId, scenario);
+    } finally {
+      if (userAction === attempt) {
+        userAction = null;
+        if (preparation) {
+          paint();
+          if (hadPlayFocus && !attempt.signal.aborted && document.activeElement === document.body
+            && !play.hidden && !play.disabled) focusInViewport(play);
+        }
+      }
+    }
   }
+
+  scenarioChoices.addEventListener('change', () => {
+    if (!playbackMessage) return;
+    playbackMessage = '';
+    paint();
+  });
 
   participantForm.addEventListener('input', () => {
     try { text(participantOutput, participantIdentity(Object.fromEntries(new FormData(participantForm))).id); }

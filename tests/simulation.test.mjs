@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { LiveEcgDisplay } from '../live-ecg-display.js';
 import { mainStudy } from '../assets/audio/main-study-timeline.js';
-import { breathVolumeAt, demoCsv, ecgPacket, elapsedRun } from '../simulation.js';
+import { breathVolumeAt, demoCsv, ecgPacket, elapsedRun, sceneBreathingAt } from '../simulation.js';
 
 const manifest = JSON.parse(readFileSync(new URL('../assets/ecg/mock-ecg.json', import.meta.url)));
 const bytes = readFileSync(new URL('../assets/ecg/mock-ecg.f32', import.meta.url));
@@ -69,7 +69,7 @@ test('the preview audio matches the catalog of all 18 main-study takes', () => {
 test('Haupt-Runde fits the three opening recordings, complete cycles and outro into 15 minutes', () => {
   const { opening, sampleRate, cycleStartFrame, cycles, closing, durationFrames, sha256 } = mainStudy;
   assert.deepEqual(opening.map(cue => cue.id), [
-    'atem-lauschen-augen-geschlossen', 'atem-lauschen-augen-offen', 'boxatmung-anleitung',
+    'atem-lauschen-augen-geschlossen', 'atem-lauschen-augen-offen', 'main-study-instructions',
   ]);
   let nextFrame = 0;
   for (const cue of opening) {
@@ -77,6 +77,9 @@ test('Haupt-Runde fits the three opening recordings, complete cycles and outro i
     nextFrame += cue.frames;
   }
   assert.equal(nextFrame, cycleStartFrame);
+  assert.equal(opening[2].frames, 1998720);
+  assert.equal(sceneBreathingAt(163000, 'haupt-15').phase, 'natural');
+  assert.equal(sceneBreathingAt(165000, 'haupt-15').phase, 'inhale');
   assert.equal(cycles, 45);
   assert.equal(closing.startFrame, cycleStartFrame + cycles * 16 * sampleRate);
   assert.equal(closing.startFrame + closing.frames, 900 * sampleRate);

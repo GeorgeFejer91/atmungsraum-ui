@@ -15,19 +15,19 @@ export const mainStudy = {
       "offsetFrame": 2418048
     },
     {
-      "id": "boxatmung-anleitung",
+      "id": "main-study-instructions",
       "startFrame": 5249664,
-      "frames": 1825920,
+      "frames": 1998720,
       "offsetFrame": 5249664
     }
   ],
-  "cycleStartFrame": 7075584,
+  "cycleStartFrame": 7248384,
   "cycles": 45,
   "closing": {
     "id": "outro",
-    "startFrame": 38827584,
-    "frames": 862416,
-    "offsetFrame": 7075584
+    "startFrame": 39000384,
+    "frames": 689616,
+    "offsetFrame": 7248384
   },
-  "sha256": "58b69791e5d468ebaa768f3eaeea257f0de56ff16730cad2b32eba3acf2773eb"
+  "sha256": "fa64c9871f9c880be09fd287a58961447661b9a006e2403608f9c408497166b7"
 };

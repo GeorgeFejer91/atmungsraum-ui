@@ -1,4 +1,4 @@
-import { mainStudy } from './assets/audio/main-study-timeline.js';
+import { mainStudy } from './assets/audio/main-study-timeline.js?v=study-instructions';
 
 export const ecgRate = 130;
 const packetLength = ecgRate * 2;

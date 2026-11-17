@@ -62,20 +62,31 @@ async function writeFlac(name, samples) {
 const sha256 = await writeFlac('main-study-cues.flac', pcm);
 await writeFile(new URL('main-study-cues.json', audioRoot), JSON.stringify({ cue_seconds: cueSeconds, sha256, pools }, null, 2) + '\n');
 
-const opening = plan.events.filter(event => event.id.startsWith('instruction_')).map(event => ({
+const opening = plan.events.filter(event => event.id.startsWith('instruction_')).slice(0, 2).map(event => ({
   id: event.asset, startFrame: event.offset_frames, frames: event.duration_frames, offsetFrame: event.offset_frames,
 }));
 const narration = opening.map(cue => wavePcm(files.get('assets/audio/scenarios/haupt-15/' + plan.audio_assets[cue.id].file), cue.frames));
-const cycleStartFrame = plan.events.find(event => event.id === 'inhale').offset_frames;
-const tail = plan.events.at(-1);
+const instructionId = 'main-study-instructions';
+const instructionFile = fileURLToPath(new URL(instructionId + '.mp3', audioRoot));
+const instructions = execFileSync('ffmpeg', ['-nostdin', '-v', 'error', '-i', instructionFile,
+  '-ar', String(rate), '-ac', '1', '-f', 's16le', 'pipe:1'], { maxBuffer: 8 * 1024 * 1024, windowsHide: true });
+const instructionStart = narration.reduce((frames, clip) => frames + clip.length / 2, 0);
+opening.push({ id: instructionId, startFrame: instructionStart, frames: instructions.length / 2, offsetFrame: instructionStart });
+narration.push(instructions);
+const cycleStartFrame = instructionStart + instructions.length / 2;
+const closingStartFrame = cycleStartFrame + plan.cycles * 4 * cueFrames;
+const closingFrames = plan.total_frames - closingStartFrame;
 const outroDirectory = join(sourceRoot, 'assets/audio/box-breathing/de/soft-v2');
 const outro = JSON.parse(await readFile(join(outroDirectory, 'outro.json')));
 const outroWav = await readFile(join(outroDirectory, outro.file));
-if (createHash('sha256').update(outroWav).digest('hex') !== outro.sha256 || outro.frames > tail.duration_frames) {
+const outroTrimFrames = Math.max(0, outro.frames - closingFrames);
+if (createHash('sha256').update(outroWav).digest('hex') !== outro.sha256
+  || outroTrimFrames > outro.processing.speech_start_frame) {
   throw new Error('Unexpected main-study outro asset');
 }
-narration.push(wavePcm(outroWav, outro.frames), Buffer.alloc((tail.duration_frames - outro.frames) * 2));
-const closing = { id: 'outro', startFrame: tail.offset_frames, frames: tail.duration_frames, offsetFrame: cycleStartFrame };
+const outroPcm = wavePcm(outroWav, outro.frames).subarray(outroTrimFrames * 2);
+narration.push(outroPcm, Buffer.alloc(closingFrames * 2 - outroPcm.length));
+const closing = { id: 'outro', startFrame: closingStartFrame, frames: closingFrames, offsetFrame: cycleStartFrame };
 const timeline = { sampleRate: rate, durationFrames: plan.total_frames, opening, cycleStartFrame, cycles: plan.cycles, closing,
   sha256: await writeFlac('main-study-narration.flac', narration) };
 await writeFile(new URL('main-study-timeline.js', audioRoot), `export const mainStudy = ${JSON.stringify(timeline, null, 2)};\n`);
