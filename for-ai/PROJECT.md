@@ -98,6 +98,10 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   cycles with the supplied recording. Test a slow or failed audio download
   with inline loading and retry feedback. The strict Chrome audit passed
   41 states across seven viewport cases.
+- [x] Connect the private WebGPU particle preview to the playground session
+  on loopback. Chrome checked the painted radius, pause, signal loss and the
+  Canvas fallback at a 320px viewport. Review the private preview locally;
+  sharing the experiment visuals requires a private distribution target.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 
@@ -163,6 +167,11 @@ The session status shows loading or allows retry if the audio is unavailable.
 signal. The radius follows the Quest configuration's 1 to 2 metre range in
 proportion, with sine-shaped transitions and both holds. The view caps
 animation at 24 updates per second and stops drawing when paused or hidden.
+The local-only particle preview can use a separate WebGPU renderer supplied by
+a loopback launcher. It uses the same run state and normalized breath progress
+as the Canvas preview. The existing renderer is the fallback if local WebGPU
+is unavailable. Keep private renderer assets, profile and launcher outside the
+public repository; the published playground continues to use Canvas.
 See [README](../README.md) for transferring design changes to the original app.
 
 Upstream visuals are pinned to `3f8d7c8befa3c13d1e8f574e82082468ba5128f7`.

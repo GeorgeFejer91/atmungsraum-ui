@@ -28,13 +28,40 @@ function advancePhases(points, seconds) {
   for (const point of points) point.phase = point.nextPhase;
 }
 
+function canvasParticles(canvas) {
+  const { width, height } = canvas;
+  const pixelsPerMeter = Math.min(width, height) * .22;
+  let context, points;
+
+  return {
+    draw(progress, seconds) {
+      context ??= canvas.getContext('2d');
+      if (!context) return;
+      context.clearRect(0, 0, width, height);
+      if (progress === null) return;
+
+      const radius = (1 + progress) * pixelsPerMeter;
+      points ??= particleSphere();
+      if (seconds) advancePhases(points, seconds);
+      context.fillStyle = '#a8ddf7';
+      for (const point of points) {
+        const depth = (point.z + 1) / 2;
+        context.globalAlpha = .2 + depth * .44 + .16 * (1 + Math.sin(point.phase));
+        context.beginPath();
+        context.arc(width / 2 + point.x * radius, height / 2 + point.y * radius, .75 + depth, 0, 2 * Math.PI);
+        context.fill();
+      }
+    },
+  };
+}
+
 export function mountSceneParticles(preview, readBreathing) {
   const canvas = preview.querySelector('canvas');
   const caption = preview.querySelector('#scene-breath-phase');
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
-  const { width, height } = canvas;
-  const pixelsPerMeter = Math.min(width, height) * .22;
-  let state, timer, lastFrame, context, points, drawnRadius;
+  const fallback = canvasParticles(canvas);
+  let renderer = fallback;
+  let state, timer, lastFrame, drawnProgress;
 
   function stop() {
     clearInterval(timer);
@@ -46,31 +73,67 @@ export function mountSceneParticles(preview, readBreathing) {
     const breath = readBreathing(now);
     const label = breath ? phaseLabels[breath.phase] : 'Kein Atemsignal';
     if (caption.textContent !== label) caption.textContent = label;
-    const radius = breath ? (motion.matches ? 1.5 : breath.radiusM) * pixelsPerMeter : null;
-    if (!animate && radius === drawnRadius) return Boolean(breath);
-    context ??= canvas.getContext('2d');
-    if (!context) return false;
-    context.clearRect(0, 0, width, height);
-    drawnRadius = radius;
-    if (!breath) return false;
-
-    points ??= particleSphere();
-    if (animate && lastFrame !== undefined) advancePhases(points, Math.min(.06, (now - lastFrame) / 1000));
+    const progress = breath ? (motion.matches ? .5 : Math.max(0, Math.min(1, breath.radiusM - 1))) : null;
+    if (!animate && progress === drawnProgress) return Boolean(breath);
+    const seconds = animate && lastFrame !== undefined ? Math.min(.06, (now - lastFrame) / 1000) : 0;
+    renderer.draw(progress, seconds);
+    drawnProgress = progress;
     lastFrame = now;
-    context.fillStyle = '#a8ddf7';
-    for (const point of points) {
-      const depth = (point.z + 1) / 2;
-      context.globalAlpha = .2 + depth * .44 + .16 * (1 + Math.sin(point.phase));
-      context.beginPath();
-      context.arc(width / 2 + point.x * radius, height / 2 + point.y * radius, .75 + depth, 0, 2 * Math.PI);
-      context.fill();
+    return Boolean(breath);
+  }
+
+  const localPreview = location.hostname === '127.0.0.1' && navigator.gpu &&
+    new URLSearchParams(location.search).get('particle-preview') === 'local';
+  let localRequested = false;
+
+  async function loadLocalRenderer() {
+    const gpuCanvas = canvas.cloneNode();
+    let failed = false;
+    function useFallback(error) {
+      if (failed) return;
+      failed = true;
+      console.warn('Local particle preview unavailable:', error.message);
+      if (renderer === fallback) return;
+      gpuCanvas.replaceWith(canvas);
+      renderer = fallback;
+      drawnProgress = undefined;
+      sync();
     }
-    return true;
+    try {
+      const { createRenderer } = await import('/local-particles/renderer.mjs');
+      const local = await createRenderer(gpuCanvas, useFallback);
+      if (failed) return;
+      renderer = {
+        reset: local.reset,
+        draw(progress, seconds) {
+          try {
+            local.draw(progress, seconds);
+          } catch (error) {
+            useFallback(error);
+            fallback.draw(progress, seconds);
+          }
+        },
+      };
+      gpuCanvas.dataset.particleRenderer = 'local';
+      canvas.replaceWith(gpuCanvas);
+      drawnProgress = undefined;
+      if (!preview.hidden && !document.hidden) render(performance.now());
+    } catch (error) {
+      useFallback(error);
+    }
   }
 
   function sync() {
     const visible = state === 'RUNNING' || state === 'PAUSED';
+    if (!visible && !preview.hidden) {
+      renderer.reset?.();
+      drawnProgress = undefined;
+    }
     preview.hidden = !visible;
+    if (visible && !document.hidden && localPreview && !localRequested) {
+      localRequested = true;
+      void loadLocalRenderer();
+    }
     const animate = visible && state === 'RUNNING' && !document.hidden && !motion.matches;
     if (!animate) stop();
     if (!visible || document.hidden || timer !== undefined) return;
