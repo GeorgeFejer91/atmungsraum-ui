@@ -119,6 +119,10 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   deployed main at da6985b. Eleven public assets match Git. The public direct
   review and ordinary completion flow pass in Chrome, and the exact commit
   passes the seven-viewport GUI gate and all eight Node tests.
+- [x] Put all five response scales on one scrollable form. The seven-viewport
+  gate and public browser test verified the transition, required selections,
+  numeric JSON and mock Drive. Eight public assets match main at 48da70f after
+  [Pages run 44296326014](https://github.com/GeorgeFejer91/atmungsraum-ui/actions/runs/44296326014).
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 
