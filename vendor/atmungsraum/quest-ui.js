@@ -1,8 +1,10 @@
 import { sameQuest, operationId, controllerAccessState } from './quest-gateway.js?v=12';
 import { canRecenter, polarSetup, polarReadiness, QuestRehearsal, rehearsalActions, rehearsalPolarAllowed, rehearsalScenarios } from './quest-rehearsal.js?v=28';
-import { ecgTrace, questRecording, questRecordings, questPrefixBatches } from './quest-data.js?v=27';
-import { openQuestRecordingStore } from './quest-recording-store.js?v=4';
-import { mountQuestDrive } from './quest-drive-ui.js?v=6';
+import { ecgTrace, questRecording, questRecordings, questPrefixBatches } from './quest-data.js?v=28';
+import { openQuestRecordingStore } from './quest-recording-store.js?v=5';
+import { mountQuestDrive } from './quest-drive-ui.js?v=7';
+import { mainQuestionnairePrompts, questionnaireFile } from './data-logging.js?v=20261118-post-session-questions';
+import { openDialog } from '../../dialogs.js';
 import { BreathingSetup } from './breathing-setup.js?v=8';
 import { LiveBreathDisplay } from '../../live-breath-display.js?v=5';
 import { LiveEcgDisplay } from '../../live-ecg-display.js?v=1';
@@ -104,6 +106,16 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   const retry = byId('quest-export-retry');
   const download = byId('quest-export-download');
   const archivePicker = byId('quest-archives');
+  const questionnaireScreen = byId('questionnaire-screen');
+  const questionTitle = byId('questionnaire-title');
+  const questionnaireForm = byId('questionnaire-form');
+  const answerInput = byId('questionnaire-answer');
+  const answerStatus = byId('questionnaire-status');
+  const answerBack = byId('questionnaire-back');
+  const answerNext = byId('questionnaire-next');
+  const answerLink = byId('questionnaire-download');
+  let questionnaire, savingAnswers = false, questionIndex = 0;
+  const answers = Array(mainQuestionnairePrompts.length).fill('');
   let ecgTimer, ecgAttempt, exportAttempt, nextSync = 0, exportMessage = '';
   let liveAttempt, liveGeneration, nextLive = 0;
   let archiveRead = 0;
@@ -129,6 +141,76 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   let ecgSensor = '';
   let breathTimer;
   const rehearsal = new QuestRehearsal({ storage, onChange: paint });
+
+  function showQuestion(focus = false) {
+    text(questionTitle, 'Frage ' + (questionIndex + 1) + ' von ' + answers.length);
+    text(byId('questionnaire-prompt'), mainQuestionnairePrompts[questionIndex]);
+    text(answerNext.firstElementChild, questionIndex === answers.length - 1 ? 'Antworten speichern' : 'Weiter');
+    answerInput.value = answers[questionIndex];
+    answerInput.setCustomValidity('');
+    text(answerStatus, '');
+    answerStatus.hidden = true;
+    answerBack.hidden = questionIndex === 0;
+    if (focus) focusInViewport(questionTitle);
+  }
+
+  function setQuestionnaire(form) {
+    if (questionnaire?.id === form?.id) return;
+    questionnaire = form;
+    answers.fill('');
+    questionIndex = 0;
+    if (form) showQuestion();
+    else answerInput.value = '';
+  }
+
+  answerInput.addEventListener('input', () => { answerInput.setCustomValidity(''); });
+  answerBack.addEventListener('click', () => {
+    if (!questionIndex || savingAnswers) return;
+    answers[questionIndex] = answerInput.value;
+    questionIndex--;
+    showQuestion(true);
+  });
+  questionnaireForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const form = questionnaire;
+    const gateway = rehearsal.gateway;
+    if (!form || !gateway || savingAnswers || questionnaireScreen.hidden) return;
+    answers[questionIndex] = answerInput.value.trim();
+    if (!answers[questionIndex]) {
+      answerInput.setCustomValidity('Bitte gib eine Antwort ein.');
+      answerInput.reportValidity();
+      return;
+    }
+    if (questionIndex < answers.length - 1) {
+      questionIndex++;
+      showQuestion(true);
+      return;
+    }
+    savingAnswers = answerBack.disabled = answerNext.disabled = true;
+    answerInput.readOnly = true;
+    let store, openRecordings = false;
+    try {
+      const file = questionnaireFile(form.run, answers);
+      store = await openQuestRecordingStore(gateway.owner);
+      await store.saveQuestionnaire(form.id, form.run.session_id, file);
+      drive.schedule();
+      if (rehearsal.gateway !== gateway || questionnaire !== form) return;
+      setQuestionnaire(undefined);
+      archivePicker.value = form.id;
+      await selectArchive();
+      openRecordings = rehearsal.gateway === gateway;
+    } catch {
+      if (questionnaire === form) {
+        text(answerStatus, 'Speichern fehlgeschlagen. Bitte versuche es erneut.');
+        answerStatus.hidden = false;
+      }
+    } finally {
+      store?.close();
+      answerInput.readOnly = savingAnswers = answerBack.disabled = answerNext.disabled = false;
+      paint();
+      if (openRecordings) openDialog(byId('recordings-dialog'), byId('recordings-open'));
+    }
+  });
 
   function selectedScenario() {
     return scenarioChoices.querySelector('input:checked:not([disabled])');
@@ -314,16 +396,19 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     retry.disabled = waiting || unknown || Boolean(exportAttempt);
     archivePicker.parentElement.hidden = !status || !archivePicker.options.length;
     download.hidden = !status || !download.hasAttribute('href');
-    if (showPreview !== !preview.hidden) {
-      const hadPreviewFocus = preview.contains(document.activeElement);
-      preview.hidden = !showPreview;
-      questScreen.hidden = showPreview;
-      if (showPreview) focusInViewport(previewTitle);
-      else {
-        if (hadPreviewFocus || document.activeElement === document.body) {
-          if (showScenario) focusInViewport(selectedScenario());
-          else focusInViewport(statusText);
-        }
+    const showQuestionnaire = Boolean(questionnaire && idle && !recovery && !unknown);
+    const showCalibration = showPreview && !showQuestionnaire;
+    if (showQuestionnaire !== !questionnaireScreen.hidden || showCalibration !== !preview.hidden) {
+      const hadScreenFocus = preview.contains(document.activeElement) || questionnaireScreen.contains(document.activeElement);
+      questionnaireScreen.hidden = !showQuestionnaire;
+      preview.hidden = !showCalibration;
+      questScreen.hidden = showQuestionnaire || showCalibration;
+      if (showQuestionnaire) {
+        document.querySelector('dialog[open]')?.close();
+        focusInViewport(questionTitle);
+      } else if (showCalibration) focusInViewport(previewTitle);
+      else if (hadScreenFocus || document.activeElement === document.body) {
+        focusInViewport(showScenario ? selectedScenario() : statusText);
       }
     }
     renderLive(performance.now());
@@ -505,9 +590,11 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   }
 
   function clearDownload() {
-    if (download.hasAttribute('href')) URL.revokeObjectURL(download.href);
-    download.removeAttribute('href');
-    download.hidden = true;
+    for (const link of [download, answerLink]) {
+      if (link.hasAttribute('href')) URL.revokeObjectURL(link.href);
+      link.removeAttribute('href');
+      link.hidden = true;
+    }
   }
 
   function clearArchives() {
@@ -523,6 +610,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     exportMessage = '';
     archivePicker.replaceChildren();
     clearDownload();
+    setQuestionnaire(undefined);
   }
 
   async function selectArchive() {
@@ -534,12 +622,18 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
     let store;
     try {
       store = await openQuestRecordingStore(gateway.owner);
-      const stored = await store.get(id);
+      const [stored, form] = await Promise.all([store.get(id), store.getQuestionnaire(id)]);
       const archive = stored instanceof Blob ? stored : stored?.download;
       if (read !== archiveRead || rehearsal.gateway !== gateway) return;
       if (!(archive instanceof Blob)) throw Error('Aufnahme fehlt.');
       download.href = URL.createObjectURL(archive);
       download.download = archive instanceof File ? archive.name : `quest-${id}.zip`;
+      text(download.firstElementChild, form?.file ? 'Aufnahme' : 'Aufnahme herunterladen');
+      if (form?.file instanceof File) {
+        answerLink.href = URL.createObjectURL(form.file);
+        answerLink.download = form.file.name;
+        answerLink.hidden = false;
+      }
     } catch {
       if (read === archiveRead) exportMessage = 'Die gespeicherte Aufnahme konnte nicht geöffnet werden.';
     } finally {
@@ -585,13 +679,25 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
             if (existing) {
               const stored = await store.get(id);
               if (stored?.bundleVersion === 1 && stored.bundle instanceof File
-                && (!participantCsv || (stored.download instanceof File && stored.download.name.endsWith('.csv')))) continue;
+                && (!participantCsv || (stored.download instanceof File && stored.download.name.endsWith('.csv')))) {
+                const form = await store.getQuestionnaire(id);
+                signal.throwIfAborted();
+                if (form?.required && !form.file && !questionnaire) setQuestionnaire(form);
+                continue;
+              }
             }
             const archive = await questRecording(gateway, id, signal, { includeSensorBundle: true, store });
             if (participantCsv && !archive.download.name.endsWith('.csv')) throw Error('Quest-CSV fehlt.');
             signal.throwIfAborted();
+            // Each mock device starts with a fresh inventory. A verified main
+            // run is current even if the simulation advances past live staging.
+            if (archive.questionnaire) archive.questionnaire.required = true;
             await store.finalizePrefix(id, archive);
             signal.throwIfAborted();
+            if (archive.questionnaire && !questionnaire) {
+              setQuestionnaire({ id, ...archive.questionnaire });
+              paint();
+            }
             drive.schedule();
             void drive.sync();
             known.add(id);

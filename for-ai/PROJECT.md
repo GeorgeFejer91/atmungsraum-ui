@@ -30,6 +30,11 @@ Simulation menu.
    separately on the same page. Select an option and press
    **Starten**. Timed runs show elapsed and total time and a progress bar above
    the pause and end controls. The bar holds while paused.
+5. **Haupt-Runde questionnaire.** In the same browser, show one of five
+   required questions at a time after the simulated recorder verifies
+   natural main completion. Save a separate JSON file with the synthetic
+   recording's participant ID and session UUID, and exercise its upload
+   through the existing mock Drive. See the [direct review link](../README.md).
 
 The current build starts in the simulated connected state and opens the
 participant form as a dialog. Its fixture exports use a fixed demo identity.
@@ -105,6 +110,10 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
 - [x] Group Geführte Atmung and Freie Erkundung under Probe-Runde. Chrome
   verified keyboard selection, and the strict audit passed 42 states across
   seven viewport cases.
+- [x] Port the smartphone questionnaire and add a completed main-run review entry.
+  The ordinary scenario route and the direct entry use verified mock v4 data.
+  Browser checks cover empty fields, Back, separate downloads, early finish,
+  practice exclusion, and automatic delivery to the mock Drive.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 

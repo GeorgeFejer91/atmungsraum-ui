@@ -1,14 +1,14 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
-import { createMockQuest } from './mock-quest.js?v=free-exploration-audio';
+import { createMockQuest } from './mock-quest.js?v=post-session-questions';
 import { openDialog } from './dialogs.js';
 import { mountBreathingAudio, playCalibrationPrelude } from './playground-audio.js?v=free-exploration-audio';
 import { mountSceneParticles } from './scene-particles.js?v=main-study-sequence';
-import { participantIdentity } from './vendor/atmungsraum/data-logging.js';
-import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=audio-start';
+import { participantIdentity } from './vendor/atmungsraum/data-logging.js?v=20261118-post-session-questions';
+import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=post-session-questions';
 import { showBluetooth, showOfflineChecks } from './connectivity.js?v=header-actions';
 
 const byId = id => document.getElementById(id);
-const reviewViews = ['connection', 'participant', 'calibration', 'scenarios', 'session'];
+const reviewViews = ['connection', 'participant', 'calibration', 'scenarios', 'session', 'questionnaire'];
 
 export function mountPlayground() {
   const url = new URL(location.href);

@@ -70,11 +70,3 @@ export const mainStudyOutroSeconds = mainStudy.closing.frames / mainStudy.sample
 export function elapsedRun(run, now) {
   return Math.min(run.duration, run.elapsed + (run.started === null ? 0 : Math.max(0, now - run.started) * run.speed / 1000));
 }
-
-export function demoCsv(samples, rate, seconds = 5) {
-  const rows = ['source,sample_index,time_s,ecg_mock_uv'];
-  for (let index = 0; index < rate * seconds; index++) {
-    rows.push(['mock-neurokit2', index, (index / rate).toFixed(6), Math.round(samples[index % samples.length] * 1000)].join(','));
-  }
-  return rows.join('\n') + '\n';
-}

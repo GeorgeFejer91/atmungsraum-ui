@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+import json
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -164,6 +165,73 @@ def check_review_links(browser, url):
             expect(page.locator("#quest-play")).to_have_text("Starten")
         layout_check(page)
         page.close()
+
+
+def check_questionnaire(browser, url):
+    # The direct entry must work without a headset, external Drive, or a 15-minute run.
+    direct = urlsplit(url)._replace(query="view=questionnaire", fragment="").geturl()
+    page, errors = start_page(browser, direct, clock=True)
+    expect(page.locator("#questionnaire-screen")).to_be_visible()
+    expect(page.locator("#questionnaire-title")).to_have_text("Frage 1 von 5")
+    page.goto(urlsplit(url)._replace(query="view=connection").geturl())
+    expect(page.locator("#quest-participant")).to_be_visible()
+    expect(page.locator("#questionnaire-screen")).to_be_hidden()
+    assert not errors, errors
+    page.close()
+
+    # Exercise the ordinary scenario route and the simulated Drive queue.
+    scenarios = urlsplit(url)._replace(query="view=scenarios", fragment="").geturl()
+    page, errors = start_page(browser, scenarios, clock=True)
+    expect(page.locator("#session-choices")).to_be_visible()
+    menu(page, "#drive-open")
+    page.locator("#quest-drive-connect").click()
+    expect(page.locator("#quest-drive-status")).to_contain_text("Google Drive verbunden")
+    close_dialog(page)
+    simulation(page)
+    page.locator("#simulation-speed").select_option("60")
+    close_dialog(page)
+    page.get_by_role("radio", name="Haupt-Runde").check()
+    page.locator("#quest-play").click()
+    expect(page.locator("#quest-play")).to_have_text("Pause")
+    expect(page.locator("#questionnaire-screen")).to_be_hidden()
+    page.clock.fast_forward(16000)
+    heading = page.locator("#questionnaire-title")
+    field = page.locator("#questionnaire-answer")
+    expect(heading).to_be_visible()
+    page.locator("#questionnaire-next").click()
+    expect(field).to_be_focused()
+    field.fill("  ")
+    field.press("Enter")
+    expect(heading).to_have_text("Frage 1 von 5")
+    field.fill("Testantwort 1")
+    field.press("Enter")
+    page.locator("#questionnaire-back").click()
+    expect(field).to_have_value("Testantwort 1")
+    field.press("Enter")
+    for index in range(2, 6):
+        expect(heading).to_have_text(f"Frage {index} von 5")
+        field.fill(f"Testantwort {index}")
+        field.press("Enter")
+    expect(page.locator("#questionnaire-screen")).to_be_hidden()
+    expect(page.locator("#recordings-dialog")).to_be_visible()
+    with page.expect_download() as questionnaire:
+        page.locator("#questionnaire-download").click()
+    with page.expect_download() as csv:
+        page.locator("#quest-export-download").click()
+    name = csv.value.suggested_filename
+    assert questionnaire.value.suggested_filename == name.removesuffix(".csv") + "_questionnaire.json"
+    record = json.loads(questionnaire.value.path().read_bytes())
+    cells = csv.value.path().read_text(encoding="utf-8").strip().splitlines()[-1].split(",")
+    assert cells[5] == "end" and cells[21] == "completed"
+    assert record["participant_id"] == cells[1] == "Dem_30_O"
+    assert record["session_id"] == cells[2]
+    assert record["recording_filename"] == name
+    assert [item["answer"] for item in record["answers"]] == [f"Testantwort {n}" for n in range(1, 6)]
+    close_dialog(page)
+    menu(page, "#drive-open")
+    expect(page.locator("#quest-drive-status")).to_have_text("In Google Drive bestätigt: 2")
+    assert not errors, errors
+    page.close()
 
 
 def check_main_study_start(browser, url):
@@ -579,7 +647,10 @@ def full_flow(browser, url, image):
         page.locator("#quest-export-download").click()
     assert re.fullmatch(r"Dem_30_O_\d{4}-\d{2}-\d{2}_haupt-15_r1\.csv", pending.value.suggested_filename)
     exported = pending.value.path().read_text(encoding="utf-8")
-    assert exported.startswith("source,sample_index,time_s,ecg_mock_uv\nmock-neurokit2,")
+    assert exported.startswith("schema_version,participant_id,session_id,run_index,scenario_id,record_type,")
+    end = exported.strip().splitlines()[-1].split(",")
+    assert end[1] == "Dem_30_O" and end[4:6] == ["haupt-15", "end"] and end[21] == "aborted"
+    expect(page.locator("#questionnaire-download")).to_be_hidden()
     assert "Tes_30_O" not in exported
     close_dialog(page)
     exploration.check()
@@ -600,6 +671,7 @@ def full_flow(browser, url, image):
     with page.expect_download() as pending:
         page.locator("#quest-export-download").click()
     assert re.fullmatch(r"Dem_30_O_\d{4}-\d{2}-\d{2}_free-exploration_r2\.csv", pending.value.suggested_filename)
+    expect(page.locator("#questionnaire-download")).to_be_hidden()
     close_dialog(page)
     page.locator("#quest-participant").click()
     page.locator("#patient-surname").fill("neue")
@@ -663,6 +735,8 @@ def main():
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(channel="chrome")
             check_review_links(browser, url)
+            check_questionnaire(browser, url)
+            print("PASS post-main questionnaire, separate synthetic JSON and simulated Drive", flush=True)
             check_main_study_start(browser, url)
             print("PASS failed audio can be retried and slow audio starts without Quest recovery", flush=True)
             check_scene_particles(browser, url)

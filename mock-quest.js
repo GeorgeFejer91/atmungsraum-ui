@@ -2,7 +2,7 @@ import { MockECG } from './mock-ecg.js';
 import { breathVolumeAt, ecgPacket, ecgRate, elapsedRun, mainStudyOutroSeconds, runLengths, scenarioTimelines, sceneBreathingAt } from './simulation.js?v=free-exploration-audio';
 import { joinQuest } from './vendor/atmungsraum/quest-gateway.js';
 import { pairPhone } from './vendor/atmungsraum/quest-pairing.js';
-import { createMockRecordings } from './mock-recordings.js';
+import { createMockRecordings } from './mock-recordings.js?v=post-session-questions';
 import { mockQuestFetch, randomHex } from './mock-protocol.js';
 
 const endpoint = 'http://192.168.2.48:8766/v1/gateway';
@@ -109,13 +109,13 @@ export function createMockQuest(review) {
     };
   }
 
-  async function finish(now) {
+  async function finish(now, completed = false) {
     if (!run || phase === 'SAVING') return;
     phase = 'SAVING';
     const elapsed = elapsedRun(run, now);
     run.elapsed = elapsed;
     run.started = null;
-    await recordings.finish(elapsed);
+    await recordings.finish(elapsed, completed);
     run = null;
     phase = 'IDLE';
   }
@@ -125,7 +125,7 @@ export function createMockQuest(review) {
     if (run.scenario === 'haupt-15' && run.speed === 1) {
       outro = { key: runAudioKey(), started: run.started + (run.duration - run.elapsed) * 1000, duration: run.duration };
     }
-    await finish(now);
+    await finish(now, true);
   }
 
   function runAudioKey() {
@@ -222,6 +222,13 @@ export function createMockQuest(review) {
     await advance(now);
     if (action === 'status') {
       if (review === 'session') await (initialSession ??= armRun('haupt-15', 'condition-a'));
+      if (review === 'questionnaire') {
+        await (initialSession ??= (async () => {
+          await armRun('haupt-15', 'condition-a');
+          run.elapsed = run.duration;
+          await finish(now, true);
+        })());
+      }
       return snapshot(now);
     }
     if (action === 'ecg-preview') {

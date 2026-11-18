@@ -14,9 +14,9 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/app-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./style.css?v=probe-scenarios">
+  <link rel="stylesheet" href="./style.css?v=post-session-questions">
   <script type="module" src="./pwa-install.js?v=2"></script>
-  <script type="module" src="./app.js?v=free-exploration-audio"></script>
+  <script type="module" src="./app.js?v=post-session-questions"></script>
 </head>
 <body>
   <header id="corner-actions" aria-label="Geräte und Aktionen">
@@ -154,6 +154,7 @@
         <option value="calibration">Atemkalibrierung</option>
         <option value="scenarios">Szenarioauswahl</option>
         <option value="session">Sitzungsansicht</option>
+        <option value="questionnaire">Fragebogen nach Haupt-Runde</option>
         <option value="pairing">Quest-Kopplung</option>
         <option value="history">Frühere Browser-Aufnahmen</option>
       </select>
@@ -243,7 +244,10 @@
             <span data-measure>Quest-Aufnahme</span>
             <select id="quest-archives"></select>
           </label>
-      <a id="quest-export-download" hidden><span data-measure>Aufnahme herunterladen</span></a>
+      <div class="recording-downloads">
+        <a id="quest-export-download" aria-label="Aufnahme herunterladen" hidden><span data-measure>Aufnahme herunterladen</span></a>
+        <a id="questionnaire-download" aria-label="Antworten herunterladen" hidden><span data-measure>Antworten</span></a>
+      </div>
       <button id="quest-export-retry" type="button" hidden><span data-measure>Jetzt abgleichen</span></button></div>
     </div>
     <footer class="actions"><button type="button" data-close><span data-measure>Schließen</span></button></footer>
@@ -326,6 +330,24 @@
         <button id="quest-recovery-open" type="button" data-dialog="quest-recovery-dialog" aria-haspopup="dialog" aria-controls="quest-recovery-dialog" hidden class="check-icon recovery-icon" data-check="unconfirmed" aria-label="Quest-Status prüfen" title="Quest-Status prüfen"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="./assets/icons/checks.svg#alert"/></svg></button>
       </div>
       <footer class="actions"><button id="quest-play" type="button" hidden><span data-measure>Starten</span></button><button id="quest-finish" type="button" hidden><span data-measure>Beenden</span></button></footer>
+    </section>
+    <section id="questionnaire-screen" aria-labelledby="questionnaire-title" class="screen" hidden>
+      <header class="screen-header">
+        <h1 id="questionnaire-title" data-measure tabindex="-1">Frage 1 von 5</h1>
+      </header>
+      <div class="screen-body">
+        <form id="questionnaire-form" autocomplete="off">
+          <label class="questionnaire-field">
+            <span id="questionnaire-prompt" data-measure></span>
+            <input id="questionnaire-answer" required maxlength="500" aria-describedby="questionnaire-status">
+          </label>
+          <p id="questionnaire-status" data-measure role="status" hidden></p>
+        </form>
+      </div>
+      <footer class="actions">
+        <button id="questionnaire-back" type="button" hidden><span data-measure>Zurück</span></button>
+        <button id="questionnaire-next" class="primary-navigation" type="submit" form="questionnaire-form"><span data-measure>Weiter</span></button>
+      </footer>
     </section>
     <section class="screen" id="breathing-preview" lang="en" aria-labelledby="preview-title" hidden>
       <header class="screen-header"><h1 id="preview-title" data-measure tabindex="-1">Breathing Calibration</h1></header>

@@ -10,7 +10,11 @@
   can be retried and that a slow download cannot become a Quest timeout. The
   Freie Erkundung check verifies the handoff from instruction to music,
   pause and resume within the track, and automatic completion. The
-  strict GUI audit covers these audio loading and unavailable states. Use
+  strict GUI audit covers these audio loading and unavailable states. The
+  questionnaire test checks automatic entry from an accelerated main run,
+  use of the same tab, linked JSON and CSV downloads, and mock Drive readback.
+  The layout gate checks the first and last items, reduced keyboard height,
+  and the resulting recordings dialog. Use
   `--url` for the published site.
 - `for-ai/scripts/check-context.ps1 -RequireRemote` checks the control plane
   against the configured remote. Check the exact Pages run for the pushed SHA

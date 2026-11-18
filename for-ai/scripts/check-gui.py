@@ -177,6 +177,27 @@ def measure_views(page, flow, url, style_text):
     page.locator("#quest-play").click()
     expect(page.locator("#scene-breath-phase")).to_have_text("Freie Atmung")
     capture("main-study opening")
+    page.goto(url + "?view=questionnaire")
+    style_text()
+    answer = page.locator("#questionnaire-answer")
+    title = page.locator("#questionnaire-title")
+    expect(answer).to_be_visible()
+    capture("questionnaire first item")
+    for item in range(1, 6):
+        expect(title).to_have_text(f"Frage {item} von 5")
+        answer.fill(f"Testantwort {item}")
+        if item == 5:
+            height = page.viewport_size["height"]
+            if height >= 640:
+                width = page.viewport_size["width"]
+                page.set_viewport_size({"width": width, "height": max(300, height - 416)})
+                expect(answer).to_be_focused()
+                capture("questionnaire keyboard")
+                page.set_viewport_size({"width": width, "height": height})
+            capture("questionnaire last item")
+        answer.press("Enter")
+    expect(page.locator("#questionnaire-download")).to_be_visible()
+    capture("questionnaire recordings")
     return samples
 
 

@@ -11,6 +11,7 @@ Open a fresh demo directly at the screen you want to review:
 | Breathing calibration | [Breathing Calibration](https://georgefejer91.github.io/atmungsraum-ui/?view=calibration) |
 | Scenario selection | [Szenarioauswahl](https://georgefejer91.github.io/atmungsraum-ui/?view=scenarios) |
 | Session controls | [Haupt-Runde ready to start](https://georgefejer91.github.io/atmungsraum-ui/?view=session) |
+| Post-session questionnaire | [Five placeholder questions](https://georgefejer91.github.io/atmungsraum-ui/?view=questionnaire) |
 | Earlier browser recordings | [Frühere Browser-Aufnahmen](https://georgefejer91.github.io/atmungsraum-ui/#daten) |
 
 These entry points are also listed under **Simulation → Einstieg**. The
@@ -32,7 +33,12 @@ minutes of guided breathing) or **Freie Erkundung** (instruction plus 7:05 of
 free breathing). **Haupt-Runde** runs for 15 minutes in one fixed condition.
 Start, pause, resume, and end the run using the app's controls. Each scenario shows
 a progress bar and elapsed versus total time. Saved runs offer a synthetic
-CSV download.
+CSV download. After a Haupt-Runde finishes and its simulated recording is
+verified, the same browser tab shows five required German placeholder
+questions, one at a time. The separate answer JSON keeps the demo
+recording's ID and session UUID and downloads from **Aufnahmen → Antworten**.
+Connect **Google Drive** in the playground to exercise the simulated upload.
+The direct questionnaire link starts with a completed fictional Haupt-Runde.
 
 During playback, **Partikelvorschau** shows a small coupled particle sphere
 driven by the simulated Polar breathing signal. It expands during inhale,

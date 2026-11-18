@@ -4,7 +4,9 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { LiveEcgDisplay } from '../live-ecg-display.js';
 import { mainStudy } from '../assets/audio/main-study-timeline.js';
-import { breathVolumeAt, demoCsv, ecgPacket, elapsedRun, sceneBreathingAt } from '../simulation.js';
+import { breathVolumeAt, ecgPacket, elapsedRun, sceneBreathingAt } from '../simulation.js';
+import { createMockRecordings } from '../mock-recordings.js';
+import { completedMainQuestionnaire } from '../vendor/atmungsraum/data-logging.js';
 
 const manifest = JSON.parse(readFileSync(new URL('../assets/ecg/mock-ecg.json', import.meta.url)));
 const bytes = readFileSync(new URL('../assets/ecg/mock-ecg.f32', import.meta.url));
@@ -97,13 +99,33 @@ test('Haupt-Runde matches control durations and switches from opening to ten min
   assert.equal(createHash('sha256').update(narration).digest('hex'), sha256);
 });
 
-test('box cue, accelerated run clock and mock download stay deterministic', () => {
+test('box cue and accelerated run clock stay deterministic', () => {
   assert.deepEqual([0, 2000, 4000, 8000, 10000, 12000, 16000].map(breathVolumeAt), [0, .5, 1, 1, .5, 0, 0]);
   const run = { duration: 900, elapsed: 24, speed: 60, started: 1000 };
   assert.equal(elapsedRun(run, 2000), 84);
   assert.equal(elapsedRun(run, 100000), 900);
   assert.equal(elapsedRun({ ...run, started: null }, 100000), 24);
-  const csv = demoCsv(samples, rate);
-  assert.match(csv, /^source,sample_index,time_s,ecg_mock_uv\nmock-neurokit2,0,0\.000000,-?\d+/);
-  assert.equal(csv.trim().split('\n').length, rate * 5 + 1);
+});
+
+test('the mock publishes a questionnaire-eligible CSV only at natural main completion', async () => {
+  const recordings = createMockRecordings({ device: 'fixture', serial: 'fixture' },
+    { samples, rate: 8, prepare: async () => {} });
+  for (const [scenario, seconds, completed] of [
+    ['haupt-15', 90, false], ['probe-5', 318, true], ['haupt-15', 900, true],
+  ]) {
+    await recordings.begin(scenario, 'condition-a');
+    const prefix = await recordings.read({ query: 'live-describe' }, 4);
+    await recordings.finish(seconds, completed);
+    const { manifest } = await recordings.read({ query: 'describe', id: prefix.id });
+    const csv = manifest.participant_csv;
+    const { data } = await recordings.read({ query: 'read', manifest_id: manifest.manifest_id, file: csv.name,
+      offset: csv.size - 512, length: 512 });
+    const tail = Buffer.from(data, 'base64');
+    assert.equal(csv.session_id, prefix.session_id);
+    assert.equal(tail.toString().trimEnd().split('\n').at(-1).split(',')[21], completed ? 'completed' : 'aborted');
+    const questionnaire = completedMainQuestionnaire(csv, tail);
+    if (scenario === 'haupt-15' && completed) {
+      assert.deepEqual(questionnaire, { participant_id: 'Dem_30_O', session_id: csv.session_id, recording_filename: csv.name });
+    } else assert.equal(questionnaire, null);
+  }
 });
