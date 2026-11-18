@@ -92,7 +92,7 @@ def layout_check(page):
     expect(page.locator("html")).to_have_attribute("data-measurement", "ready")
 
 
-def start_page(browser, url, width=390, height=844, clock=False):
+def start_page(browser, url, width=390, height=844, clock=False, title="#quest-title"):
     page = browser.new_page(viewport={"width": width, "height": height}, accept_downloads=True)
     if clock:
         page.clock.install()
@@ -111,7 +111,7 @@ def start_page(browser, url, width=390, height=844, clock=False):
         expect(page.locator("html")).to_have_attribute("data-measurement", "ready")
     except AssertionError as error:
         raise AssertionError(f"Pretext startup failed. Browser errors: {errors}") from error
-    expect(page.locator('#quest-title[data-text-measurement="pretext"]')).to_be_visible()
+    expect(page.locator(f'{title}[data-text-measurement="pretext"]')).to_be_visible()
     return page, errors
 
 
@@ -170,7 +170,7 @@ def check_review_links(browser, url):
 def check_questionnaire(browser, url):
     # The direct entry must work without a headset, external Drive, or a 15-minute run.
     direct = urlsplit(url)._replace(query="view=questionnaire", fragment="").geturl()
-    page, errors = start_page(browser, direct, clock=True)
+    page, errors = start_page(browser, direct, clock=True, title="#questionnaire-title")
     expect(page.locator("#questionnaire-screen")).to_be_visible()
     expect(page.locator("#questionnaire-title")).to_have_text("Frage 1 von 5")
     page.goto(urlsplit(url)._replace(query="view=connection").geturl())

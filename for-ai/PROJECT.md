@@ -113,7 +113,11 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
 - [x] Port the smartphone questionnaire and add a completed main-run review entry.
   The ordinary scenario route and the direct entry use verified mock v4 data.
   Browser checks cover empty fields, Back, separate downloads, early finish,
-  practice exclusion, and automatic delivery to the mock Drive.
+  practice exclusion, and automatic delivery to the mock Drive. The exact
+  [Pages run 44293408066](https://github.com/GeorgeFejer91/atmungsraum-ui/actions/runs/44293408066)
+  deployed main at da6985b. Eleven public assets match Git. The public direct
+  review and ordinary completion flow pass in Chrome, and the exact commit
+  passes the seven-viewport GUI gate and all eight Node tests.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 
