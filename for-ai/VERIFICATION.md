@@ -13,8 +13,9 @@
   strict GUI audit covers these audio loading and unavailable states. The
   questionnaire test checks automatic entry from an accelerated main run,
   use of the same tab, linked JSON and CSV downloads, and mock Drive readback.
-  The layout gate checks the first and last items, reduced keyboard height,
-  and the resulting recordings dialog. Use
+  It verifies required Likert choices and sliders, explicit slider selection,
+  numeric JSON, and vertical scrolling in the questionnaire form. The layout
+  gate checks the top and bottom of that form and the recordings dialog. Use
   `--url` for the published site.
 - `for-ai/scripts/check-context.ps1 -RequireRemote` checks the control plane
   against the configured remote. Check the exact Pages run for the pushed SHA

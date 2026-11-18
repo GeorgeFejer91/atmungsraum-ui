@@ -1,4 +1,4 @@
-import { mountPlayground } from './playground.js?v=post-session-questions';
+import { mountPlayground } from './playground.js?v=questionnaire-scales';
 import { mountDialogs } from './dialogs.js';
 
 const root = document.documentElement;

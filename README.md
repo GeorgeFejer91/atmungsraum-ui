@@ -34,8 +34,9 @@ free breathing). **Haupt-Runde** runs for 15 minutes in one fixed condition.
 Start, pause, resume, and end the run using the app's controls. Each scenario shows
 a progress bar and elapsed versus total time. Saved runs offer a synthetic
 CSV download. After a Haupt-Runde finishes and its simulated recording is
-verified, the same browser tab shows five required German placeholder
-questions, one at a time. The separate answer JSON keeps the demo
+verified, the same browser tab shows all five required German placeholder
+items on one scrollable page. It uses three five-point Likert choices and two
+0–100 sliders. The separate answer JSON keeps the demo
 recording's ID and session UUID and downloads from **Aufnahmen → Antworten**.
 Connect **Google Drive** in the playground to exercise the simulated upload.
 The direct questionnaire link starts with a completed fictional Haupt-Runde.

@@ -41,10 +41,7 @@ main { display: grid; grid-template-rows: minmax(0, 1fr); min-width: 0; min-heig
 .screen-body { display: grid; align-content: space-between; gap: var(--gap); min-width: 0; min-height: 0; padding-block: 3px; }
 .quest-body, .preview-body, .data-body { text-align: center; }
 .quest-body > button { width: min(100%, 320px); justify-self: center; }
-#questionnaire-screen > .screen-body { align-content: center; }
-#questionnaire-form, .questionnaire-field, .recording-downloads { display: grid; gap: var(--gap); min-width: 0; }
-#questionnaire-answer { width: 100%; }
-#questionnaire-back[hidden] + #questionnaire-next { grid-column: 1 / -1; }
+.recording-downloads { display: grid; gap: var(--gap); min-width: 0; }
 .recording-downloads:not(:has(> :not([hidden]))) { display: none; }
 .recording-downloads:has(#questionnaire-download:not([hidden])) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .pairing, .fields, .dialog-group, .recovery-panel { display: grid; gap: var(--gap); min-width: 0; }

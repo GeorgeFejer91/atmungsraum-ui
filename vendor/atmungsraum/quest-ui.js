@@ -3,7 +3,8 @@ import { canRecenter, polarSetup, polarReadiness, QuestRehearsal, rehearsalActio
 import { ecgTrace, questRecording, questRecordings, questPrefixBatches } from './quest-data.js?v=28';
 import { openQuestRecordingStore } from './quest-recording-store.js?v=5';
 import { mountQuestDrive } from './quest-drive-ui.js?v=7';
-import { mainQuestionnairePrompts, questionnaireFile } from './data-logging.js?v=20261118-post-session-questions';
+import { questionnaireFile } from './data-logging.js?v=20261118-questionnaire-scales';
+import { mountQuestionnaireForm } from './questionnaire-form.js?v=1';
 import { openDialog } from '../../dialogs.js';
 import { BreathingSetup } from './breathing-setup.js?v=8';
 import { LiveBreathDisplay } from '../../live-breath-display.js?v=5';
@@ -109,13 +110,11 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   const questionnaireScreen = byId('questionnaire-screen');
   const questionTitle = byId('questionnaire-title');
   const questionnaireForm = byId('questionnaire-form');
-  const answerInput = byId('questionnaire-answer');
   const answerStatus = byId('questionnaire-status');
-  const answerBack = byId('questionnaire-back');
-  const answerNext = byId('questionnaire-next');
+  const answerSubmit = byId('questionnaire-submit');
+  const answerFields = mountQuestionnaireForm(questionnaireForm, answerStatus);
   const answerLink = byId('questionnaire-download');
-  let questionnaire, savingAnswers = false, questionIndex = 0;
-  const answers = Array(mainQuestionnairePrompts.length).fill('');
+  let questionnaire, savingAnswers = false;
   let ecgTimer, ecgAttempt, exportAttempt, nextSync = 0, exportMessage = '';
   let liveAttempt, liveGeneration, nextLive = 0;
   let archiveRead = 0;
@@ -142,52 +141,20 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
   let breathTimer;
   const rehearsal = new QuestRehearsal({ storage, onChange: paint });
 
-  function showQuestion(focus = false) {
-    text(questionTitle, 'Frage ' + (questionIndex + 1) + ' von ' + answers.length);
-    text(byId('questionnaire-prompt'), mainQuestionnairePrompts[questionIndex]);
-    text(answerNext.firstElementChild, questionIndex === answers.length - 1 ? 'Antworten speichern' : 'Weiter');
-    answerInput.value = answers[questionIndex];
-    answerInput.setCustomValidity('');
-    text(answerStatus, '');
-    answerStatus.hidden = true;
-    answerBack.hidden = questionIndex === 0;
-    if (focus) focusInViewport(questionTitle);
-  }
-
   function setQuestionnaire(form) {
     if (questionnaire?.id === form?.id) return;
     questionnaire = form;
-    answers.fill('');
-    questionIndex = 0;
-    if (form) showQuestion();
-    else answerInput.value = '';
+    answerFields.reset();
   }
 
-  answerInput.addEventListener('input', () => { answerInput.setCustomValidity(''); });
-  answerBack.addEventListener('click', () => {
-    if (!questionIndex || savingAnswers) return;
-    answers[questionIndex] = answerInput.value;
-    questionIndex--;
-    showQuestion(true);
-  });
   questionnaireForm.addEventListener('submit', async event => {
     event.preventDefault();
     const form = questionnaire;
     const gateway = rehearsal.gateway;
     if (!form || !gateway || savingAnswers || questionnaireScreen.hidden) return;
-    answers[questionIndex] = answerInput.value.trim();
-    if (!answers[questionIndex]) {
-      answerInput.setCustomValidity('Bitte gib eine Antwort ein.');
-      answerInput.reportValidity();
-      return;
-    }
-    if (questionIndex < answers.length - 1) {
-      questionIndex++;
-      showQuestion(true);
-      return;
-    }
-    savingAnswers = answerBack.disabled = answerNext.disabled = true;
-    answerInput.readOnly = true;
+    const answers = answerFields.read();
+    if (!answers) return;
+    savingAnswers = answerSubmit.disabled = questionnaireForm.inert = true;
     let store, openRecordings = false;
     try {
       const file = questionnaireFile(form.run, answers);
@@ -206,7 +173,7 @@ export function mountQuestRehearsal(participantIdentity, savedPair, services) {
       }
     } finally {
       store?.close();
-      answerInput.readOnly = savingAnswers = answerBack.disabled = answerNext.disabled = false;
+      savingAnswers = answerSubmit.disabled = questionnaireForm.inert = false;
       paint();
       if (openRecordings) openDialog(byId('recordings-dialog'), byId('recordings-open'));
     }

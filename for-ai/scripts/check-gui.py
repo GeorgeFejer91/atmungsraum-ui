@@ -179,23 +179,19 @@ def measure_views(page, flow, url, style_text):
     capture("main-study opening")
     page.goto(url + "?view=questionnaire")
     style_text()
-    answer = page.locator("#questionnaire-answer")
-    title = page.locator("#questionnaire-title")
-    expect(answer).to_be_visible()
-    capture("questionnaire first item")
-    for item in range(1, 6):
-        expect(title).to_have_text(f"Frage {item} von 5")
-        answer.fill(f"Testantwort {item}")
-        if item == 5:
-            height = page.viewport_size["height"]
-            if height >= 640:
-                width = page.viewport_size["width"]
-                page.set_viewport_size({"width": width, "height": max(300, height - 416)})
-                expect(answer).to_be_focused()
-                capture("questionnaire keyboard")
-                page.set_viewport_size({"width": width, "height": height})
-            capture("questionnaire last item")
-        answer.press("Enter")
+    form = page.locator("#questionnaire-form")
+    first = form.locator("#questionnaire-q1 input")
+    last = form.locator("#questionnaire-q5 input")
+    expect(first).to_be_visible()
+    expect(form.locator("fieldset")).to_have_count(5)
+    capture("questionnaire top")
+    first.press("Home")
+    for question in (2, 3, 4):
+        form.locator(f'#questionnaire-q{question} input[value="4"]').check()
+    last.press("End")
+    last.scroll_into_view_if_needed()
+    capture("questionnaire scrolled")
+    page.locator("#questionnaire-submit").click()
     expect(page.locator("#questionnaire-download")).to_be_visible()
     capture("questionnaire recordings")
     return samples

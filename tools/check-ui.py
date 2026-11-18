@@ -172,7 +172,7 @@ def check_questionnaire(browser, url):
     direct = urlsplit(url)._replace(query="view=questionnaire", fragment="").geturl()
     page, errors = start_page(browser, direct, clock=True, title="#questionnaire-title")
     expect(page.locator("#questionnaire-screen")).to_be_visible()
-    expect(page.locator("#questionnaire-title")).to_have_text("Frage 1 von 5")
+    expect(page.locator("#questionnaire-title")).to_have_text("Fragebogen")
     page.goto(urlsplit(url)._replace(query="view=connection").geturl())
     expect(page.locator("#quest-participant")).to_be_visible()
     expect(page.locator("#questionnaire-screen")).to_be_hidden()
@@ -181,7 +181,7 @@ def check_questionnaire(browser, url):
 
     # Exercise the ordinary scenario route and the simulated Drive queue.
     scenarios = urlsplit(url)._replace(query="view=scenarios", fragment="").geturl()
-    page, errors = start_page(browser, scenarios, clock=True)
+    page, errors = start_page(browser, scenarios, height=640, clock=True)
     expect(page.locator("#session-choices")).to_be_visible()
     menu(page, "#drive-open")
     page.locator("#quest-drive-connect").click()
@@ -195,23 +195,28 @@ def check_questionnaire(browser, url):
     expect(page.locator("#quest-play")).to_have_text("Pause")
     expect(page.locator("#questionnaire-screen")).to_be_hidden()
     page.clock.fast_forward(16000)
-    heading = page.locator("#questionnaire-title")
-    field = page.locator("#questionnaire-answer")
-    expect(heading).to_be_visible()
-    page.locator("#questionnaire-next").click()
-    expect(field).to_be_focused()
-    field.fill("  ")
-    field.press("Enter")
-    expect(heading).to_have_text("Frage 1 von 5")
-    field.fill("Testantwort 1")
-    field.press("Enter")
-    page.locator("#questionnaire-back").click()
-    expect(field).to_have_value("Testantwort 1")
-    field.press("Enter")
-    for index in range(2, 6):
-        expect(heading).to_have_text(f"Frage {index} von 5")
-        field.fill(f"Testantwort {index}")
-        field.press("Enter")
+    form = page.locator("#questionnaire-form")
+    first = form.locator("#questionnaire-q1 input")
+    last = form.locator("#questionnaire-q5 input")
+    submit = page.locator("#questionnaire-submit")
+    expect(form.locator("fieldset")).to_have_count(5)
+    expect(form.locator('input[type="range"]')).to_have_count(2)
+    expect(form.locator('input[type="radio"]')).to_have_count(15)
+    submit.click()
+    expect(first).to_have_attribute("aria-invalid", "true")
+    expect(first).to_be_focused()
+    first.press("Home")
+    for question, value in ((2, 1), (3, 5), (4, 3)):
+        form.locator(f'#questionnaire-q{question} input[value="{value}"]').check()
+    submit.click()
+    expect(last).to_have_attribute("aria-invalid", "true")
+    expect(last).to_be_focused()
+    assert form.evaluate("element => element.scrollTop") > 0
+    assert page.evaluate("document.scrollingElement.scrollTop") == 0
+    # Accepting the midpoint is explicit even though the thumb doesn't move.
+    last.press("Space")
+    expect(last).to_have_attribute("aria-valuetext", "50")
+    submit.click()
     expect(page.locator("#questionnaire-screen")).to_be_hidden()
     expect(page.locator("#recordings-dialog")).to_be_visible()
     with page.expect_download() as questionnaire:
@@ -226,7 +231,9 @@ def check_questionnaire(browser, url):
     assert record["participant_id"] == cells[1] == "Dem_30_O"
     assert record["session_id"] == cells[2]
     assert record["recording_filename"] == name
-    assert [item["answer"] for item in record["answers"]] == [f"Testantwort {n}" for n in range(1, 6)]
+    assert record["schema_version"] == 2
+    assert [item["answer"] for item in record["answers"]] == [0, 1, 5, 3, 50]
+    assert [item["type"] for item in record["answers"]] == ["slider", "likert", "likert", "likert", "slider"]
     close_dialog(page)
     menu(page, "#drive-open")
     expect(page.locator("#quest-drive-status")).to_have_text("In Google Drive bestätigt: 2")

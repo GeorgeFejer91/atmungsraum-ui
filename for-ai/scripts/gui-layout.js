@@ -14,11 +14,13 @@ async () => {
     && box.top >= outer.top - 1 && box.bottom <= outer.bottom + 1;
   const view = { left: viewport.offsetLeft, top: viewport.offsetTop,
     right: viewport.offsetLeft + viewport.width, bottom: viewport.offsetTop + viewport.height };
+  const survey = activePanel?.matches('#questionnaire-screen') ? activePanel.querySelector('#questionnaire-form') : null;
+  const surveyBox = survey?.getBoundingClientRect();
   const reportOverflow = element => {
     const width = element.scrollWidth - element.clientWidth;
-    const height = element.scrollHeight - element.clientHeight;
+    const height = element === survey ? 0 : element.scrollHeight - element.clientHeight;
     if (width > 0 || height > 0) problems.push(`${describe(element)} overflow ${Math.max(0, width)} × ${Math.max(0, height)} px`);
-    if (element.scrollLeft || element.scrollTop) problems.push(`${describe(element)} scrolled`);
+    if (element.scrollLeft || element !== survey && element.scrollTop) problems.push(`${describe(element)} scrolled`);
   };
 
   reportOverflow(root);
@@ -50,7 +52,9 @@ async () => {
     const nativeField = element.matches('input, select, textarea');
     const bounded = element.clientWidth > 0 && element.clientHeight > 0;
     if (bounded && !nativeField) reportOverflow(element);
-    if (!inside(element.getBoundingClientRect(), view)) {
+    const surveyItem = element !== survey && survey?.contains(element);
+    const boundary = surveyItem ? { left: surveyBox.left, right: surveyBox.right, top: -Infinity, bottom: Infinity } : view;
+    if (!inside(element.getBoundingClientRect(), boundary)) {
       problems.push(`${describe(element)} extends outside the visual viewport`);
     }
     if (element.matches('[data-measure]') && element.textContent.trim()
@@ -68,9 +72,12 @@ async () => {
     }
     if (activePanel.contains(element) && element.matches('button, input, select, textarea, summary, a[href]')) {
       const box = element.getBoundingClientRect();
-      if (!inside(box, panelBox)) problems.push(`${describe(element)} escapes its panel`);
-      const target = document.elementFromPoint((box.left + box.right) / 2, (box.top + box.bottom) / 2);
-      if (target && !element.contains(target)) problems.push(`${describe(element)} is covered`);
+      if (!surveyItem && !inside(box, panelBox)) problems.push(`${describe(element)} escapes its panel`);
+      const centerY = (box.top + box.bottom) / 2;
+      if (!surveyItem || (centerY >= surveyBox.top && centerY <= surveyBox.bottom)) {
+        const target = document.elementFromPoint((box.left + box.right) / 2, centerY);
+        if (target && !element.contains(target)) problems.push(`${describe(element)} is covered`);
+      }
     }
   }
 
@@ -97,7 +104,7 @@ async () => {
     problems.push(`${describe(activePanel)} stretch body needs shrinkable width and height`);
   }
   const fields = body.querySelector('#patient-fields');
-  const groups = fields ? [...fields.querySelectorAll('.patient-field')] : [...body.children].filter(visible);
+  const groups = survey ? [survey] : fields ? [...fields.querySelectorAll('.patient-field')] : [...body.children].filter(visible);
   if (fields) {
     const bounds = fields.getBoundingClientRect();
     const innerHeight = body.clientHeight - parseFloat(bodyStyle.paddingTop) - parseFloat(bodyStyle.paddingBottom);

@@ -30,9 +30,10 @@ Simulation menu.
    separately on the same page. Select an option and press
    **Starten**. Timed runs show elapsed and total time and a progress bar above
    the pause and end controls. The bar holds while paused.
-5. **Haupt-Runde questionnaire.** In the same browser, show one of five
-   required questions at a time after the simulated recorder verifies
-   natural main completion. Save a separate JSON file with the synthetic
+5. **Haupt-Runde questionnaire.** In the same browser, show all five required
+   items on one vertically scrollable form after verified natural main
+   completion. Use three five-point Likert items and two 0–100 sliders. Save a
+   separate JSON file with the synthetic
    recording's participant ID and session UUID, and exercise its upload
    through the existing mock Drive. See the [direct review link](../README.md).
 
@@ -130,8 +131,9 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
 2. The document and every app-authored region must have zero horizontal and
    vertical scroll range. Fit must hold while navigating, editing, opening a
    dialog, and moving focus. Keep user zoom and text enlargement available.
-   Clipped content, hidden scrollbar chrome, and scrolling to reach a control
-   each fail the contract.
+   The Haupt-Runde questionnaire is the sole exception. Its form may scroll
+   vertically to reach all five items while the heading and save action stay
+   visible.
 3. Use `uncodixfy-pretext` and its outside-in accordion stretch layout for all
    app screens and dialogs. Allocate the usable shell first, reserve header
    and action anchors, and keep label-field pairs and control groups in reading
