@@ -31,10 +31,8 @@ async function fetchAudioAsset(path) {
 }
 
 async function loadBreathingCues(context) {
-  const [plan, bytes] = await Promise.all([
-    fetchAudioAsset('./assets/audio/main-study-cues.json').then(response => response.json()),
-    fetchAudioAsset('./assets/audio/main-study-cues.flac').then(response => response.arrayBuffer()),
-  ]);
+  const plan = await (await fetchAudioAsset('./assets/audio/main-study-cues.json?v=zen')).json();
+  const bytes = await (await fetchAudioAsset('./assets/audio/main-study-cues.flac?v=' + plan.sha256)).arrayBuffer();
   const buffer = await context.decodeAudioData(bytes);
   const cueCount = Object.values(plan.pools).reduce((total, pool) => total + pool.length, 0);
   if (buffer.duration !== cueCount * plan.cue_seconds) throw new Error('Unexpected breathing cue bank length');
@@ -80,10 +78,8 @@ function cueAt(cues, track, timeline, frame) {
   }
   const frames = cues.plan.cue_seconds * rate;
   const phase = Math.floor((frame - cycleStart) / frames);
-  const cycle = Math.floor(phase / phasePools.length);
   const slot = breathPhaseSlot(phase, timeline?.cycles);
-  const pool = cues.plan.pools[phasePools[slot]];
-  const cue = pool[(cycle + Number(slot === 3)) % pool.length];
+  const [cue] = cues.plan.pools[phasePools[slot]];
   return { startFrame: cycleStart + phase * frames, frames, offsetFrame: cue.offset * rate, buffer: cues.buffer };
 }
 

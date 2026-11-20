@@ -38,7 +38,7 @@ test('the fixture produces a visible packet gap in the production ECG renderer',
 test('the Quest breathing loop fixture matches the original manifest and WAV bytes', () => {
   const upstream = readFileSync(new URL('../assets/audio/box-loop.json', import.meta.url));
   assert.equal(createHash('sha256').update(upstream).digest('hex'),
-    'b50ce8853b9d097b904cc90043e580a75ce17662e1ff2c985bb08b7df45a9ece');
+    '4bae0727c67637d2cf49d93e4bf4295406ded4550c31148f9deeda55c9417cc8');
   for (const { cue } of JSON.parse(upstream).phases) {
     const wav = readFileSync(new URL(`../${cue.path}`, import.meta.url));
     assert.equal(wav.length, cue.bytes);
@@ -48,8 +48,8 @@ test('the Quest breathing loop fixture matches the original manifest and WAV byt
 
 test('the mixed inhale and exhale cues match the main project audio bytes', () => {
   const mixes = {
-    inhale: 'b68c51bf393d6974e304ad52838020c4d02ea4396af779e527d28b1dc72a7281',
-    exhale: '3a8650778a528656a4a1cc4f601d43236606eaa750f8b294f43a23bbd0aa31f8',
+    inhale: '203fecc48da9d940f9c492255067e01f620de5a1d1399e70816fdf05641188e3',
+    exhale: '9667387cb026264c8a2b041fa6de11cf25ef6304c1fa4b07ef86f688cd33a720',
   };
   for (const [phase, hash] of Object.entries(mixes)) {
     const wav = readFileSync(new URL(`../assets/audio/box-breathing/de/soft-v2/${phase}_breath.wav`, import.meta.url));
@@ -57,15 +57,15 @@ test('the mixed inhale and exhale cues match the main project audio bytes', () =
   }
 });
 
-test('the preview audio matches the catalog of all 18 main-study takes', () => {
+test('the preview audio matches the catalog of the three canonical Zen cues', () => {
   const catalog = JSON.parse(readFileSync(new URL('../assets/audio/main-study-cues.json', import.meta.url)));
   const bank = readFileSync(new URL('../assets/audio/main-study-cues.flac', import.meta.url));
   assert.equal(createHash('sha256').update(bank).digest('hex'), catalog.sha256);
   assert.equal(catalog.cue_seconds, 4);
   const takes = Object.values(catalog.pools).flat();
-  assert.equal(new Set(takes.map(take => take.id)).size, 18);
-  assert.deepEqual(Object.values(catalog.pools).map(pool => pool.length), [7, 9, 2]);
-  assert.deepEqual(takes.map(take => take.offset), Array.from({ length: 18 }, (_, i) => i * 4));
+  assert.deepEqual(takes.map(take => take.id), ['zen-inhale', 'zen-exhale', 'zen-hold']);
+  assert.deepEqual(Object.values(catalog.pools).map(pool => pool.length), [1, 1, 1]);
+  assert.deepEqual(takes.map(take => take.offset), [0, 4, 8]);
 });
 
 test('Haupt-Runde matches control durations and switches from opening to ten minutes of guided breathing', () => {

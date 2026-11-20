@@ -428,14 +428,14 @@ def check_playback(browser, url):
 
     resume_at(130000, narration_bank, 127.33, 132)
     resume_at(257000, narration_bank, 254.67, 259)
-    first = resume_at(301000, 72, 0, 4)
+    first = resume_at(301000, 12, 0, 4)
     page.wait_for_function("first => playedCues[first + 4]?.audible()", arg=first, timeout=20000)
-    assert page.evaluate("i => playedCues.slice(i, i + 5).map(cue => Math.floor(cue.offset / 4) * 4)", first) == [0, 64, 28, 68, 4]
+    assert page.evaluate("i => playedCues.slice(i, i + 5).map(cue => Math.floor(cue.offset / 4) * 4)", first) == [0, 8, 4, 8, 0]
     assert page.evaluate("i => playedCues.slice(i + 1, i + 5).every((cue, j) => "
                          "Math.abs(cue.start - (playedCues[i].start + playedCues[i].duration + j * 4)) < .01)", first)
-    resume_at(893500, 72, 8, 12)
+    resume_at(893500, 12, 0, 4)
     expect(page.locator("#scene-breath-phase")).to_have_text("Einatmen")
-    last = resume_at(897500, 72, 32, 36)
+    last = resume_at(897500, 12, 4, 8)
     expect(page.locator("#scene-breath-phase")).to_have_text("Ausatmen")
     page.wait_for_function("i => playedCues[i + 1]?.bank === 319", arg=last)
     assert page.evaluate("""i => {
@@ -459,14 +459,14 @@ def check_playback(browser, url):
     probe_bank = page.evaluate("playedCues[0].bank")
     assert 45.40 < probe_bank < 45.41
     before = resume_at(43000, probe_bank, 42.5, 45)
-    page.wait_for_function("i => playedCues[i + 1]?.bank === 72", arg=before)
+    page.wait_for_function("i => playedCues[i + 1]?.bank === 12", arg=before)
     assert page.evaluate("""i => {
       const [instruction, inhale] = playedCues.slice(i, i + 2);
       return Math.abs(inhale.start - (instruction.start + instruction.duration)) < .01
         && Math.floor(inhale.offset / 4) === 0;
     }""", before)
     expect(page.locator("#scene-breath-phase")).to_have_text("Einatmen")
-    last = resume_at(343000, 72, 28, 32)
+    last = resume_at(343000, 12, 4, 8)
     expect(page.locator("#scene-breath-phase")).to_have_text("Ausatmen")
     expect(page.locator("#quest-playback")).to_be_hidden()
     assert page.evaluate("playedCues.length") == last + 1

@@ -8,8 +8,7 @@ const [source] = process.argv.slice(2);
 if (!source) throw new Error('Usage: node tools/build-preview-audio.mjs <main project atmungsraum directory>');
 
 const sourceRoot = resolve(source);
-const { buildMainStudyScenario, buildProbeStudyScenario, loadStudyInventory } = await import(pathToFileURL(join(sourceRoot, 'quest/main-study-audio.mjs')));
-const inventory = await loadStudyInventory(sourceRoot);
+const { buildMainStudyScenario, buildProbeStudyScenario } = await import(pathToFileURL(join(sourceRoot, 'quest/main-study-audio.mjs')));
 const original = JSON.parse(await readFile(join(sourceRoot, 'audio/scenarios/haupt-15.json')));
 const study = await buildMainStudyScenario(sourceRoot, original);
 const { plan, files } = study;
@@ -35,12 +34,10 @@ function stagedCue(id, frames) {
 
 const pcm = [];
 const pools = {};
-for (const [phase, takes] of Object.entries(inventory.pools)) {
-  pools[phase] = takes.map(id => {
-    const offset = pcm.length * cueSeconds;
-    pcm.push(stagedCue(id, cueFrames));
-    return { id, offset };
-  });
+for (const [role, phase] of [['inhale', 'inhale'], ['exhale', 'exhale'], ['hold', 'hold_in']]) {
+  const id = plan.events.find(event => event.id === phase).asset;
+  pools[role] = [{ id, offset: pcm.length * cueSeconds }];
+  pcm.push(stagedCue(id, cueFrames));
 }
 
 async function writeFlac(name, samples) {

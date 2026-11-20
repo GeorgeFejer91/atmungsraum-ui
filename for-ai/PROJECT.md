@@ -171,8 +171,11 @@ backends. The transport exercises the clients' signed and encrypted message
 validation. Discovery returns synthetic metadata. Recordings use a fixed demo
 identity and a dedicated browser cache. Requests stay on the page's origin.
 `playground-audio.js` follows the simulated playback state and the Quest loop's
-four-phase timing. It rotates through the newer main-study voice takes and
-plays the recorded breath sound beneath each inhale and exhale cue.
+four-phase timing. The 12-second cue bank holds the canonical Zen inhale,
+exhale and hold takes from the main project. Both hold positions play the same
+take. Inhale and exhale use the existing recorded breath layers. Rebuild the
+bank with the preview audio builder when the canonical cues change.
+The remaining browser checks were stopped at the user's request.
 The playground also plays the supplied German calibration instruction. The
 controller waits for playback to end before sending the first calibration
 command. Cancelled or unavailable audio leaves calibration unstarted; retries
