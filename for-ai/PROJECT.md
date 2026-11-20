@@ -132,6 +132,15 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   succeeded. The full public MP3 matched the source SHA-256, a byte range
   returned HTTP 206, and the public TXT was empty. All eight Node tests, the
   browser flow, and the exact-commit smartphone gate passed.
+- [x] Use the canonical track as a streamed loop from the opening through the
+  end of Geführte Atmung and Haupt-Runde, including the latter's outro.
+  Pause, resume, and terminate both layers with the run. Freie Erkundung
+  retains its own sequential speech and music and uses the appropriate gain
+  for each part. The Settings sliders save both gains across reloads.
+  Reset restores 30% background and 90% instructions. The original track
+  measures -18.1 LUFS. These are app gain defaults based on the digital mix,
+  with physical Quest 2 listening qualification tracked in production.
+  Ten Node tests, Chrome playback and the seven-viewport Pretext gate passed.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 

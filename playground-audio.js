@@ -1,3 +1,4 @@
+import { cueVolume, scenarioBackground } from './audio-mix.js?v=1';
 import { breathPhaseSlot, scenarioTimelines } from './simulation.js?v=free-exploration-audio';
 
 export function playCalibrationPrelude(media, signal) {
@@ -83,7 +84,7 @@ function cueAt(cues, track, timeline, frame) {
   return { startFrame: cycleStart + phase * frames, frames, offsetFrame: cue.offset * rate, buffer: cues.buffer };
 }
 
-function playCues(context, cues, track, playback) {
+function playCues(context, cues, track, playback, gains) {
   const timeline = scenarioTimelines[playback.scenario];
   const origin = context.currentTime - playback.seconds;
   let nextFrame = 0;
@@ -102,7 +103,7 @@ function playCues(context, cues, track, playback) {
     if (remaining <= 0) return;
     const source = context.createBufferSource();
     source.buffer = cue.buffer;
-    source.connect(context.destination);
+    source.connect(gains[cueVolume(cue.id)]);
     source.onended = () => { sources.delete(source); source.disconnect(); };
     sources.add(source);
     source.start(start, cue.offsetFrame / rate + elapsed, remaining);
@@ -120,8 +121,33 @@ function playCues(context, cues, track, playback) {
   };
 }
 
-export function mountBreathingAudio(readPlayback) {
-  let context, cues, stopPlayback, playingKey, cueLoading, failed;
+export function mountBreathingAudio(readPlayback, mix) {
+  let context, cues, stopPlayback, playingKey, cueLoading, failed, gains, music, musicScenario;
+
+  function setMix(levels) {
+    if (!gains) return;
+    for (const channel of ['music', 'instructions']) {
+      gains[channel].gain.setTargetAtTime(levels[channel] / 100, context.currentTime, 0.03);
+    }
+  }
+
+  function stopMusic() {
+    if (musicScenario) music.pause();
+    musicScenario = undefined;
+  }
+
+  function updateMusic(playback) {
+    if (!scenarioBackground(playback?.scenario)) { stopMusic(); return; }
+    if (musicScenario === playback.scenario) return;
+    musicScenario = playback.scenario;
+    if (music.error) music.load();
+    // The file is streamed so a twenty-minute track does not occupy a decoded buffer.
+    if (music.readyState >= 1) music.currentTime = playback.seconds % music.duration;
+    else music.currentTime = playback.seconds;
+    void music.play().catch(error => {
+      if (error.name !== 'AbortError') console.warn('Playground background music unavailable.', error);
+    });
+  }
   const tracks = new Map();
   const trackLoads = new Map();
 
@@ -143,6 +169,7 @@ export function mountBreathingAudio(readPlayback) {
   async function prepareScenario(scenario, signal) {
     if (signal.aborted) return false;
     if (!context) return true;
+    if (scenarioBackground(scenario)) music.preload = 'metadata';
     if (!trackLoads.has(scenario)) {
       trackLoads.set(scenario, loadScenarioTrack(context, scenario)
         .then(track => { tracks.set(scenario, track); })
@@ -168,7 +195,8 @@ export function mountBreathingAudio(readPlayback) {
 
   function update() {
     const playback = document.hidden ? null : readPlayback();
-    if (!playback || context?.state !== 'running') { stop(); return; }
+    if (!playback || context?.state !== 'running') { stop(); stopMusic(); return; }
+    updateMusic(playback);
     if (!cues && needsBreathingCues(playback.scenario)) {
       if (!cueLoading && !failed) void prepareCues().then(update).catch(audioFailed);
       return;
@@ -177,7 +205,7 @@ export function mountBreathingAudio(readPlayback) {
     if (playback.scenario && !track) return;
     if (stopPlayback && playingKey === playback.key) return;
     stop();
-    stopPlayback = playCues(context, cues, track, playback);
+    stopPlayback = playCues(context, cues, track, playback, gains);
     playingKey = playback.key;
   }
 
@@ -185,6 +213,16 @@ export function mountBreathingAudio(readPlayback) {
     if (!globalThis.AudioContext) return;
     if (!context) {
       context = new AudioContext();
+      gains = { music: context.createGain(), instructions: context.createGain() };
+      for (const channel of ['music', 'instructions']) {
+        gains[channel].gain.value = mix[channel] / 100;
+        gains[channel].connect(context.destination);
+      }
+      music = new Audio();
+      music.preload = 'none';
+      music.loop = true;
+      music.src = new URL('./assets/audio/backgroundmusic.mp3', import.meta.url).href;
+      context.createMediaElementSource(music).connect(gains.music);
       context.addEventListener('statechange', update);
     }
     failed = false;
@@ -192,6 +230,6 @@ export function mountBreathingAudio(readPlayback) {
   }
 
   document.addEventListener('visibilitychange', update);
-  window.addEventListener('pagehide', stop);
-  return { unlock, update, prepareScenario };
+  window.addEventListener('pagehide', () => { stop(); stopMusic(); });
+  return { unlock, update, prepareScenario, setMix };
 }

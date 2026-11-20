@@ -1,7 +1,8 @@
 import { createMockDrive, mockDriveAccount } from './mock-drive.js';
 import { createMockQuest } from './mock-quest.js?v=post-session-questions';
 import { openDialog } from './dialogs.js';
-import { mountBreathingAudio, playCalibrationPrelude } from './playground-audio.js?v=zen';
+import { mountBreathingAudio, playCalibrationPrelude } from './playground-audio.js?v=audio-mix';
+import { mountAudioMix } from './audio-mix.js?v=1';
 import { mountSceneParticles } from './scene-particles.js?v=main-study-sequence';
 import { participantIdentity } from './vendor/atmungsraum/data-logging.js?v=20261118-questionnaire-scales';
 import { mountQuestRehearsal } from './vendor/atmungsraum/quest-ui.js?v=questionnaire-scales';
@@ -17,6 +18,14 @@ export function mountPlayground() {
   const entry = url.hash === '#daten' ? 'history' : url.searchParams.has('pairing') ? 'pairing'
     : reviewViews.includes(requested) ? requested : 'connection';
   view.value = entry;
+  let audio;
+  const prelude = byId('preview-instruction-audio');
+  function updateMix(levels) {
+    prelude.volume = levels.instructions / 100;
+    audio?.setMix(levels);
+  }
+  const mix = mountAudioMix(updateMix);
+  updateMix(mix);
 
   function navigate(next) {
     const target = new URL(location.href);
@@ -48,9 +57,9 @@ export function mountPlayground() {
   const quest = createMockQuest(entry);
   const particles = mountSceneParticles(byId('scene-particles'), quest.sceneBreathing);
   let calibrationRequested = false, questAvailable = false;
-  const audio = mountBreathingAudio(() => questAvailable ? quest.audioPlayback(calibrationRequested) : null);
+  audio = mountBreathingAudio(() => questAvailable ? quest.audioPlayback(calibrationRequested) : null, mix);
   async function playPrelude(signal) {
-    const played = await playCalibrationPrelude(byId('preview-instruction-audio'), signal);
+    const played = await playCalibrationPrelude(prelude, signal);
     if (played && !signal.aborted) calibrationRequested = true;
     return played;
   }

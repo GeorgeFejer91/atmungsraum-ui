@@ -4,6 +4,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import re
+import sys
 from threading import Thread
 from time import monotonic
 from urllib.parse import urlsplit
@@ -14,6 +15,10 @@ from playwright.sync_api import expect, sync_playwright
 class AuditServer(ThreadingHTTPServer):
     # Chromium requests the module graph concurrently.
     request_queue_size = 64
+
+    def handle_error(self, request, client_address):
+        if not isinstance(sys.exception(), (BrokenPipeError, ConnectionResetError)):
+            super().handle_error(request, client_address)
 
 
 def menu(page, selector):
@@ -101,7 +106,12 @@ def start_page(browser, url, width=390, height=844, clock=False, title="#quest-t
     origin = urlsplit(url).netloc
     errors = []
     page.on("pageerror", lambda exc: errors.append(str(exc)))
-    page.on("requestfailed", lambda req: errors.append(req.url + " " + str(req.failure)))
+    def request_failed(req):
+        # Chromium cancels pending byte ranges when a streamed track pauses or the page closes.
+        if req.failure == "net::ERR_ABORTED" and urlsplit(req.url).path.endswith("/assets/audio/backgroundmusic.mp3"):
+            return
+        errors.append(req.url + " " + str(req.failure))
+    page.on("requestfailed", request_failed)
     page.on("response", lambda res: errors.append(str(res.status) + " " + res.url) if res.status >= 400 else None)
     page.on("request", lambda req: errors.append("External request " + req.url)
             if urlsplit(req.url).scheme in ("http", "https") and urlsplit(req.url).netloc != origin else None)
@@ -341,10 +351,36 @@ def check_scene_particles(browser, url):
     page.close()
 
 
+def check_audio_preferences(browser, url):
+    page, _ = start_page(browser, url)
+    page.locator("#tools-open").click()
+    music = page.get_by_role("slider", name="Hintergrundmusik")
+    speech = page.get_by_role("slider", name="Sprachanleitung")
+    expect(music).to_have_value("30")
+    expect(speech).to_have_value("90")
+    music.press("Home")
+    speech.press("End")
+    page.reload()
+    page.locator("#tools-open").click()
+    expect(music).to_have_value("0")
+    expect(speech).to_have_value("100")
+    page.get_by_role("button", name="Zurücksetzen").click()
+    expect(music).to_have_attribute("aria-valuetext", "30 %")
+    expect(speech).to_have_attribute("aria-valuetext", "90 %")
+    close_dialog(page)
+    expect(page.locator("#tools-open")).to_be_focused()
+    page.close()
+
+
 def check_playback(browser, url):
     page = browser.new_page()
     page.add_init_script("""(() => {
       window.playedCues = [];
+      const attach = AudioContext.prototype.createMediaElementSource;
+      AudioContext.prototype.createMediaElementSource = function (element) {
+        window.roundMusic = element;
+        return attach.call(this, element);
+      };
       const create = AudioContext.prototype.createBufferSource;
       AudioContext.prototype.createBufferSource = function () {
         const source = create.call(this);
@@ -408,6 +444,7 @@ def check_playback(browser, url):
     assert page.evaluate("playedCues.length") == 0
     play.click()
     page.wait_for_function("playedCues[0]?.audible()", timeout=10000)
+    page.wait_for_function("roundMusic?.loop && !roundMusic.paused && roundMusic.currentTime > 0", timeout=15000)
     narration_bank = page.evaluate("playedCues[0].bank")
     assert narration_bank == 319
     assert page.evaluate("playedCues[0].offset < 1 && playedCues[0].duration > 126")
@@ -417,6 +454,7 @@ def check_playback(browser, url):
         page.clock.fast_forward(target_ms - progress.evaluate("bar => Math.floor(bar.value)"))
         play.click()
         expect(play).to_have_text("Fortsetzen")
+        page.wait_for_function("roundMusic.paused")
         page.wait_for_function("playedCues.every(cue => cue.ended)")
         before = page.evaluate("playedCues.length")
         play.click()
@@ -448,6 +486,7 @@ def check_playback(browser, url):
     page.clock.fast_forward(20000)
     page.wait_for_function("playedCues.every(cue => cue.ended)")
     assert page.evaluate("playedCues.length") == last + 2
+    page.wait_for_function("roundMusic.paused")
 
     assert page.goto(urlsplit(url)._replace(query="view=scenarios").geturl()).ok
     expect(page.get_by_role("radio", name="Geführte Atmung")).to_be_checked()
@@ -478,6 +517,7 @@ def check_playback(browser, url):
     expect(progress).to_be_visible()
     total = progress.evaluate("bar => bar.max")
     assert total == 447070, total
+    assert page.evaluate("roundMusic.paused")
     page.wait_for_function("playedCues[0]?.audible()", timeout=15000)
     assert page.evaluate("playedCues[0].offset < 1 && playedCues[0].duration > 20")
     bank = page.evaluate("playedCues[0].bank")
@@ -742,6 +782,7 @@ def main():
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(channel="chrome")
             check_review_links(browser, url)
+            check_audio_preferences(browser, url)
             check_questionnaire(browser, url)
             print("PASS post-main questionnaire, separate synthetic JSON and simulated Drive", flush=True)
             check_main_study_start(browser, url)

@@ -14,10 +14,10 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/app-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
-  <link rel="stylesheet" href="./style.css?v=20261118-questionnaire-scales">
+  <link rel="stylesheet" href="./style.css?v=20261120-audio-mix">
   <link rel="stylesheet" href="./questionnaire.css?v=1">
   <script type="module" src="./pwa-install.js?v=2"></script>
-  <script type="module" src="./app.js?v=20261120-zen"></script>
+  <script type="module" src="./app.js?v=20261120-audio-mix"></script>
 </head>
 <body>
   <header id="corner-actions" aria-label="Geräte und Aktionen">
@@ -132,8 +132,23 @@
         <span class="check-symbol" aria-hidden="true"></span>
         <span data-measure>Kiosk</span>
       </button>
+      <div id="audio-mix" class="audio-mix">
+        <div class="audio-level">
+          <label for="music-volume"><span data-measure>Hintergrundmusik</span></label>
+          <output for="music-volume" aria-hidden="true" data-measure>30 %</output>
+          <input id="music-volume" name="music" type="range" min="0" max="100" value="30">
+        </div>
+        <div class="audio-level">
+          <label for="instruction-volume"><span data-measure>Sprachanleitung</span></label>
+          <output for="instruction-volume" aria-hidden="true" data-measure>90 %</output>
+          <input id="instruction-volume" name="instructions" type="range" min="0" max="100" value="90">
+        </div>
+      </div>
     </div>
-    <footer class="actions"><button type="button" data-close><span data-measure>Schließen</span></button></footer>
+    <footer class="actions">
+      <button id="audio-mix-reset" type="button"><span data-measure>Zurücksetzen</span></button>
+      <button type="button" data-close><span data-measure>Schließen</span></button>
+    </footer>
   </dialog>
   <dialog id="install-dialog" aria-labelledby="install-dialog-title">
     <header><h2 id="install-dialog-title" data-measure>App installieren</h2></header>
