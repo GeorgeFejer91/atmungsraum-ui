@@ -123,6 +123,13 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   gate and public browser test verified the transition, required selections,
   numeric JSON and mock Drive. Eight public assets match main at 48da70f after
   [Pages run 44296326014](https://github.com/GeorgeFejer91/atmungsraum-ui/actions/runs/44296326014).
+- [x] Add the supplied [background music MP3](../assets/audio/backgroundmusic.mp3)
+  and its empty spoken-word TXT to the library. Full decode passed. The original
+  50,155,244 bytes match SHA-256
+  `53bf70a3e1362721a5657eeaf8b8b94348f27c78818430840a6e98b0395b04c4`.
+  Freie Erkundung continues to play its configured recording.
+- [ ] Verify the exact Pages deployment and compare the public MP3 to the source.
+
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 
