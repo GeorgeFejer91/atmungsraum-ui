@@ -141,6 +141,9 @@ participant form as a dialog. Its fixture exports use a fixed demo identity.
   measures -18.1 LUFS. These are app gain defaults based on the digital mix,
   with physical Quest 2 listening qualification tracked in production.
   Ten Node tests, Chrome playback and the seven-viewport Pretext gate passed.
+  [Pages run 44706208740](https://github.com/GeorgeFejer91/atmungsraum-ui/actions/runs/44706208740)
+  deployed main at 4ed96a8. Chrome repeated the settings, stream lifecycle,
+  instruction and exploration checks against the published site.
 - [ ] Implement the [target PWA flow](#target-pwa-flow). Start with the dedicated
   connection page and verify the **Weiter** gate in connected and failed states.
 
